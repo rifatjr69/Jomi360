@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -15,6 +15,7 @@ import {
   Briefcase,
   RefreshCw,
   ShieldCheck,
+  Image as ImageIcon,
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +27,7 @@ import {
   adminDeleteProfile,
   adminCreatePost,
   adminGetSignedNidUrl,
+  uploadPostImage,
   fetchAllPostsForAdmin,
   toggleHidePostInDb,
   deletePostInDb,
@@ -56,10 +58,14 @@ export const Dashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [professionFilter, setProfessionFilter] = useState('all');
 
-  // Admin Create Post Form State (replaces window/DOM hacks)
+  // Admin Create Post Form State
   const [selectedPostProfileId, setSelectedPostProfileId] = useState('');
   const [adminPostContent, setAdminPostContent] = useState('');
+  const [adminPostImageFile, setAdminPostImageFile] = useState<File | null>(null);
+  const [adminPostImagePreview, setAdminPostImagePreview] = useState<string | null>(null);
+  const [adminPostImageUrlInput, setAdminPostImageUrlInput] = useState('');
   const [creatingAdminPost, setCreatingAdminPost] = useState(false);
+  const adminPostFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // NID Modal State
   const [nidPreviewUrl, setNidPreviewUrl] = useState<string | null>(null);
@@ -178,21 +184,72 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleAdminPostImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('অনুগ্রহ করে একটি বৈধ ছবি ফাইল (JPG, PNG, WEBP) নির্বাচন করুন।', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('ছবির সাইজ সর্বোচ্চ ৫ মেগাবাইট (5MB) হতে পারবে।', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    if (adminPostImagePreview && adminPostImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(adminPostImagePreview);
+    }
+
+    setAdminPostImageFile(file);
+    setAdminPostImagePreview(URL.createObjectURL(file));
+    setAdminPostImageUrlInput('');
+  };
+
+  const clearAdminPostImage = () => {
+    if (adminPostImagePreview && adminPostImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(adminPostImagePreview);
+    }
+    setAdminPostImageFile(null);
+    setAdminPostImagePreview(null);
+    setAdminPostImageUrlInput('');
+    if (adminPostFileInputRef.current) {
+      adminPostFileInputRef.current.value = '';
+    }
+  };
+
   const handleAdminCreatePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPostProfileId || !adminPostContent.trim()) {
-      showToast('প্রফেশনাল নির্বাচন করুন এবং পোস্টের কন্টেন্ট লিখুন!', 'error');
+    if (!selectedPostProfileId) {
+      showToast('অনুগ্রহ করে একজন প্রফেশনাল নির্বাচন করুন!', 'error');
+      return;
+    }
+    if (!adminPostContent.trim() && !adminPostImageFile && !adminPostImageUrlInput.trim()) {
+      showToast('পোস্টের কন্টেন্ট লিখুন অথবা একটি ছবি যুক্ত করুন!', 'error');
       return;
     }
 
     setCreatingAdminPost(true);
     try {
+      let uploadedImageUrl: string | null = null;
+      if (adminPostImageFile) {
+        uploadedImageUrl = await uploadPostImage(adminPostImageFile, selectedPostProfileId);
+      } else if (adminPostImageUrlInput.trim()) {
+        uploadedImageUrl = adminPostImageUrlInput.trim();
+      }
+
       await adminCreatePost({
         profile_id: selectedPostProfileId,
         content: adminPostContent.trim(),
+        image_url: uploadedImageUrl,
       });
+
       setAdminPostContent('');
       setSelectedPostProfileId('');
+      clearAdminPostImage();
       showToast('পোস্ট সফলভাবে তৈরি হয়েছে!', 'success');
       await loadData();
     } catch (err: any) {
@@ -685,13 +742,13 @@ export const Dashboard: React.FC = () => {
           {/* Admin Create Post Form */}
           <form
             onSubmit={handleAdminCreatePostSubmit}
-            className="p-5 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3"
+            className="p-5 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3.5"
           >
-            <h4 className="font-bold text-sm">ইউজারের পক্ষ থেকে পোস্ট করুন</h4>
+            <h4 className="font-bold text-sm text-slate-900 dark:text-white">ইউজারের পক্ষ থেকে পোস্ট করুন</h4>
             <select
               value={selectedPostProfileId}
               onChange={(e) => setSelectedPostProfileId(e.target.value)}
-              className="w-full p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 text-xs"
+              className="w-full p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100"
             >
               <option value="">প্রফেশনাল নির্বাচন করুন</option>
               {profiles.map((p) => (
@@ -700,78 +757,164 @@ export const Dashboard: React.FC = () => {
                 </option>
               ))}
             </select>
+
             <textarea
               rows={3}
               value={adminPostContent}
               onChange={(e) => setAdminPostContent(e.target.value)}
               placeholder="পোস্টের কন্টেন্ট লিখুন..."
-              className="w-full p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 text-xs"
+              className="w-full p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100"
             ></textarea>
-            <button
-              type="submit"
-              disabled={creatingAdminPost}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition cursor-pointer disabled:opacity-60"
-            >
-              {creatingAdminPost ? 'পোস্ট হচ্ছে...' : 'পোস্ট করুন'}
-            </button>
+
+            {/* Image Attachment Controls */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <label className="cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition shrink-0">
+                <ImageIcon className="w-4 h-4 text-emerald-500" />
+                <span>{adminPostImageFile ? 'ছবি পরিবর্তন করুন' : 'ছবি যুক্ত করুন'}</span>
+                <input
+                  ref={adminPostFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAdminPostImageSelect}
+                  className="hidden"
+                />
+              </label>
+
+              <input
+                type="url"
+                value={adminPostImageUrlInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAdminPostImageUrlInput(val);
+                  if (val.trim() && adminPostImageFile) {
+                    if (adminPostImagePreview && adminPostImagePreview.startsWith('blob:')) {
+                      URL.revokeObjectURL(adminPostImagePreview);
+                    }
+                    setAdminPostImageFile(null);
+                    setAdminPostImagePreview(null);
+                    if (adminPostFileInputRef.current) {
+                      adminPostFileInputRef.current.value = '';
+                    }
+                  }
+                }}
+                placeholder="অথবা ছবির সরাসরি লিংক দিন (ঐচ্ছিক https://...)"
+                className="flex-1 p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-slate-100"
+              />
+            </div>
+
+            {/* Live Selected Image Preview */}
+            {(adminPostImagePreview || adminPostImageUrlInput.trim()) && (
+              <div className="relative inline-block rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-900/50 max-w-xs">
+                <img
+                  src={adminPostImagePreview || adminPostImageUrlInput.trim()}
+                  alt="পোস্টের ছবির প্রিভিউ"
+                  className="max-h-48 w-auto object-cover block"
+                />
+                <button
+                  type="button"
+                  onClick={clearAdminPostImage}
+                  className="absolute top-2 right-2 p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg transition cursor-pointer"
+                  title="ছবি সরান"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            <div className="pt-1">
+              <button
+                type="submit"
+                disabled={creatingAdminPost}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition cursor-pointer disabled:opacity-60 inline-flex items-center gap-2"
+              >
+                {creatingAdminPost && (
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                )}
+                <span>{creatingAdminPost ? 'পোস্ট হচ্ছে...' : 'পোস্ট করুন'}</span>
+              </button>
+            </div>
           </form>
 
           <div className="space-y-4">
             {posts.length === 0 ? (
               <div className="text-center py-12 text-slate-500">কোনো পোস্ট পাওয়া যায়নি।</div>
             ) : (
-              posts.map((post) => (
-                <div
-                  key={post.id}
-                  className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-                >
-                  <div className="space-y-2 max-w-2xl">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-400">
-                        {post.created_at
-                          ? new Date(post.created_at).toLocaleDateString('bn-BD')
-                          : ''}
-                      </span>
-                      {post.is_hidden && (
-                        <span className="px-2 py-0.5 bg-red-100 text-red-600 font-bold text-[10px] rounded-full">
-                          লুকানো (Hidden)
+              posts.map((post) => {
+                const author = profiles.find((pr) => pr.id === post.profile_id);
+                return (
+                  <div
+                    key={post.id}
+                    className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-start justify-between gap-4"
+                  >
+                    <div className="space-y-2.5 max-w-2xl w-full">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {author && (
+                          <Link
+                            to={`/profile/${author.id}`}
+                            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                          >
+                            {author.full_name} (#{author.user_serial || 1})
+                          </Link>
+                        )}
+                        <span className="text-xs font-bold text-slate-400">
+                          {post.created_at
+                            ? new Date(post.created_at).toLocaleDateString('bn-BD')
+                            : ''}
                         </span>
+                        {post.is_hidden && (
+                          <span className="px-2 py-0.5 bg-red-100 text-red-600 font-bold text-[10px] rounded-full">
+                            লুকানো (Hidden)
+                          </span>
+                        )}
+                      </div>
+
+                      {post.content && (
+                        <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
+                          {post.content}
+                        </p>
+                      )}
+
+                      {post.image_url && (
+                        <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 max-w-sm max-h-64 bg-slate-900/40">
+                          <img
+                            src={post.image_url}
+                            alt="Post Attachment"
+                            className="w-full max-h-64 object-cover"
+                          />
+                        </div>
                       )}
                     </div>
-                    <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
-                      {post.content}
-                    </p>
-                  </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await toggleHidePostInDb(post.id, !post.is_hidden);
-                          await loadData();
-                          showToast('পোস্ট দৃশ্যমানতা আপডেট হয়েছে।', 'success');
-                        } catch (err: any) {
-                          showToast(translateSupabaseError(err, 'পোস্ট আপডেট ব্যর্থ হয়েছে।'), 'error');
-                        }
-                      }}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
-                        post.is_hidden ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-slate-950'
-                      }`}
-                    >
-                      {post.is_hidden ? 'প্রকাশ করুন' : 'লুকিয়ে রাখুন'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => confirmDelete(post.id, 'post')}
-                      className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-xl cursor-pointer"
-                      title="ডিলিট করুন"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await toggleHidePostInDb(post.id, !post.is_hidden);
+                            await loadData();
+                            showToast('পোস্ট দৃশ্যমানতা আপডেট হয়েছে।', 'success');
+                          } catch (err: any) {
+                            showToast(translateSupabaseError(err, 'পোস্ট আপডেট ব্যর্থ হয়েছে।'), 'error');
+                          }
+                        }}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
+                          post.is_hidden ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-slate-950'
+                        }`}
+                      >
+                        {post.is_hidden ? 'প্রকাশ করুন' : 'লুকিয়ে রাখুন'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => confirmDelete(post.id, 'post')}
+                        className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-xl cursor-pointer"
+                        title="ডিলিট করুন"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

@@ -121,6 +121,9 @@ export function translateSupabaseError(err: any, fallbackMessage = 'সার্
   if (lower.includes('rate limit') || lower.includes('too many requests') || lower.includes('security purposes')) {
     return 'অতিরিক্ত চেষ্টার কারণে সাময়িকভাবে বিরতি দেওয়া হয়েছে। কিছুক্ষণ অপেক্ষা করে আবার চেষ্টা করুন।';
   }
+  if (lower.includes('image_url') && (lower.includes('column') || lower.includes('schema cache'))) {
+    return 'ডাটাবেসের posts টেবিলে image_url কলামটি নেই। অনুগ্রহ করে প্রদত্ত SQL কোডটি Supabase SQL Editor-এ রান করুন।';
+  }
   if (lower.includes('row-level security') || lower.includes('permission denied') || err?.code === '42501') {
     return 'ডাটাবেস পারমিশন (RLS Policy) সংক্রান্ত সমস্যা। অনুগ্রহ করে প্রদত্ত RLS SQL কোডটি Supabase SQL Editor-এ রান করুন।';
   }

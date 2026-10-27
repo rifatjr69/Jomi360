@@ -489,9 +489,11 @@ export const PublicProfile: React.FC = () => {
                       </div>
                     </div>
 
-                    <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-light whitespace-pre-line">
-                      {post.content}
-                    </p>
+                    {post.content && (
+                      <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-light whitespace-pre-line">
+                        {post.content}
+                      </p>
+                    )}
 
                     {post.image_url && (
                       <div className="rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 max-h-96 bg-slate-950">
