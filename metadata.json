@@ -1,0 +1,6 @@
+{
+  "name": "জমি৩৬০ - পেশাজীবী ডিরেক্টরি",
+  "description": "বাংলাদেশের দক্ষ সার্ভেয়ার, দলিল লেখক, এডভোকেট, সিভিল কোর্ট কমিশনার ও ব্যারিস্টার সহজে খুঁজে পাওয়ার বিশ্বস্ত প্ল্যাটফর্ম।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
