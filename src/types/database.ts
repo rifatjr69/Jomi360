@@ -51,6 +51,7 @@ export interface ExtraInfoDeedWriter {
 }
 
 export interface ExtraInfoGeneric {
+  services?: string;
   specialization?: string;
   experience_years?: string;
   qualification?: string;

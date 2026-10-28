@@ -6,10 +6,10 @@
     <title>জমি৩৬০ – পেশাজীবী ডিরেক্টরি | সার্ভেয়ার, দলিল লেখক ও আইনজীবী</title>
     <meta name="description" content="বাংলাদেশের আপনার এলাকার দক্ষ সার্ভেয়ার, দলিল লেখক, এডভোকেট, সিভিল কোর্ট কমিশনার ও ব্যারিস্টার সহজে খুঁজে পেতে জমি৩৬০ ভিজিট করুন।" />
     
-    <!-- Prevent flash of wrong theme -->
+    <!-- Prevent flash of wrong theme (default strictly to light theme) -->
     <script>
       try {
-        const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        const theme = localStorage.getItem('jomi360_theme_mode') || 'light';
         if (theme === 'dark') {
           document.documentElement.classList.add('dark');
         } else {
@@ -52,7 +52,7 @@
     }
     </script>
   </head>
-  <body class="font-siliguri bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-teal-500 selection:text-white transition-colors duration-200">
+  <body class="font-siliguri bg-[#F4F7FB] dark:bg-slate-950 text-[#1E293B] dark:text-slate-100 antialiased selection:bg-[#0B63E5] selection:text-white transition-colors duration-200">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

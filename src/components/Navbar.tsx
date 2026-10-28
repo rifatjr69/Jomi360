@@ -22,29 +22,26 @@ export const Navbar: React.FC = () => {
 
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
-    return document.documentElement.classList.contains('dark') || localStorage.getItem('theme') === 'dark';
+    return localStorage.getItem('jomi360_theme_mode') === 'dark';
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Load site settings
   useEffect(() => {
     fetchSiteSettings().then(setSettings);
   }, [location.pathname]);
 
-  // Dark Mode Toggle
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
+      localStorage.setItem('jomi360_theme_mode', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+      localStorage.setItem('jomi360_theme_mode', 'light');
     }
   }, [darkMode]);
 
-  // Close dropdown on click outside or Esc
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -71,68 +68,68 @@ export const Navbar: React.FC = () => {
   };
 
   const siteTitle = settings?.site_name || 'জমি৩৬০';
-  const userInitials = profile?.full_name ? profile.full_name.charAt(0) : (user?.email ? user.email.charAt(0).toUpperCase() : 'উ');
+  const userInitials = profile?.full_name
+    ? profile.full_name.charAt(0)
+    : user?.email
+    ? user.email.charAt(0).toUpperCase()
+    : 'উ';
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        
-        {/* Brand */}
-        <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-700 via-emerald-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-emerald-900/20 group-hover:scale-105 transition-transform duration-200">
-            <Compass className="w-6 h-6 animate-pulse" />
+    <header className="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-[#E5EAF2] dark:border-slate-800 shadow-[0_1px_3px_rgba(15,41,66,0.04)] transition-colors duration-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
+        {/* Zone 1: Brand Wordmark */}
+        <Link to="/" className="flex items-center gap-2.5 group whitespace-nowrap shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-[#0B63E5] flex items-center justify-center text-white shadow-sm shadow-blue-600/20 group-hover:bg-[#084FC7] transition-colors duration-150">
+            <Compass className="w-5 h-5" />
           </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white font-siliguri group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
-              {siteTitle}
-            </span>
-            <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400 tracking-wider -mt-1 uppercase">
-              {settings?.site_name_en || 'JOMI360'} DIRECTORY
-            </span>
-          </div>
+          <span className="text-xl font-extrabold tracking-tight text-[#0F2942] dark:text-white font-siliguri group-hover:text-[#0B63E5] dark:group-hover:text-blue-400 transition-colors">
+            {siteTitle}
+          </span>
         </Link>
 
-        {/* Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-700 dark:text-slate-300">
+        {/* Zone 2: Navigation Links */}
+        <nav className="hidden md:flex items-center gap-7 text-sm font-semibold text-[#1E293B] dark:text-slate-300">
           <Link
             to="/"
-            className={`transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 ${
-              location.pathname === '/' ? 'text-emerald-600 dark:text-emerald-400 font-bold border-b-2 border-emerald-600 pb-1' : ''
+            className={`whitespace-nowrap shrink-0 transition-colors hover:text-[#0B63E5] dark:hover:text-blue-400 py-1 ${
+              location.pathname === '/'
+                ? 'text-[#0B63E5] dark:text-blue-400 font-bold border-b-2 border-[#0B63E5]'
+                : ''
             }`}
           >
             হোম
           </Link>
           <Link
             to="/professionals"
-            className={`transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 ${
-              location.pathname === '/professionals' ? 'text-emerald-600 dark:text-emerald-400 font-bold border-b-2 border-emerald-600 pb-1' : ''
+            className={`whitespace-nowrap shrink-0 transition-colors hover:text-[#0B63E5] dark:hover:text-blue-400 py-1 ${
+              location.pathname === '/professionals'
+                ? 'text-[#0B63E5] dark:text-blue-400 font-bold border-b-2 border-[#0B63E5]'
+                : ''
             }`}
           >
             পেশাজীবী তালিকা
           </Link>
         </nav>
 
-        {/* Actions & Auth */}
-        <div className="hidden md:flex items-center gap-3">
-          {/* Dark Mode Button */}
+        {/* Zone 3: Actions & Auth */}
+        <div className="hidden md:flex items-center gap-2.5 shrink-0">
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-lg text-slate-500 dark:text-slate-300 hover:bg-[#EFF6FF] hover:text-[#0B63E5] dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title={darkMode ? 'লাইট মোড' : 'ডার্ক মোড'}
           >
-            {darkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5" />}
+            {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
           </button>
 
           {profile || user ? (
-            <div className="flex items-center gap-3">
-              {/* Admin Dashboard Link (Only if admin) */}
+            <div className="flex items-center gap-2.5">
               {isAdmin && (
                 <Link
                   to="/dashboard"
-                  className={`px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-sm ${
+                  className={`px-3.5 py-2 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 shadow-xs ${
                     location.pathname.startsWith('/dashboard')
-                      ? 'bg-emerald-700 text-white'
-                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      ? 'bg-[#084FC7] text-white'
+                      : 'bg-[#0B63E5] hover:bg-[#084FC7] text-white'
                   }`}
                 >
                   <LayoutDashboard className="w-4 h-4" />
@@ -140,44 +137,46 @@ export const Navbar: React.FC = () => {
                 </Link>
               )}
 
-              {/* Account Dropdown */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-2.5 p-1.5 pr-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition cursor-pointer border border-slate-200 dark:border-slate-700"
+                  className="flex items-center gap-2 p-1 pr-3 bg-[#F8FAFC] dark:bg-slate-800 hover:bg-[#EFF6FF] dark:hover:bg-slate-700 rounded-full transition cursor-pointer border border-[#E2E8F0] dark:border-slate-700 whitespace-nowrap"
                 >
                   {profile?.profile_photo_url ? (
                     <img
                       src={profile.profile_photo_url}
                       alt={profile.full_name}
-                      className="w-8 h-8 rounded-full object-cover border border-emerald-500"
+                      referrerPolicy="no-referrer"
+                      className="w-8 h-8 rounded-full object-cover border border-[#0B63E5]"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-xs">
+                    <div className="w-8 h-8 rounded-full bg-[#0B63E5] text-white font-bold flex items-center justify-center text-xs">
                       {userInitials}
                     </div>
                   )}
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[130px] truncate">
+                  <span className="text-xs font-bold text-[#0F2942] dark:text-slate-200 max-w-[130px] truncate">
                     {profile?.full_name || 'আমার একাউন্ট'}
                   </span>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 py-2 z-50 animate-fadeIn">
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-[#E2E8F0] dark:border-slate-800 py-2 z-50">
                     <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 mb-1">
-                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      <p className="text-xs font-bold text-[#0F2942] dark:text-white truncate">
                         {profile?.full_name || 'আমার একাউন্ট'}
                       </p>
-                      <p className="text-[10px] text-slate-500 truncate">{profile?.email || user?.email}</p>
+                      <p className="text-[11px] text-slate-500 truncate">
+                        {profile?.email || user?.email}
+                      </p>
                     </div>
 
                     <Link
                       to="/account"
                       onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-700 transition"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-[#1E293B] dark:text-slate-200 hover:bg-[#EFF6FF] dark:hover:bg-blue-950/40 hover:text-[#0B63E5] transition"
                     >
-                      <User className="w-4 h-4 text-emerald-600" />
+                      <User className="w-4 h-4 text-[#0B63E5]" />
                       আমার একাউন্ট ও প্রোফাইল
                     </Link>
 
@@ -185,9 +184,9 @@ export const Navbar: React.FC = () => {
                       <Link
                         to="/dashboard"
                         onClick={() => setDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-700 transition"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-[#1E293B] dark:text-slate-200 hover:bg-[#EFF6FF] dark:hover:bg-blue-950/40 hover:text-[#0B63E5] transition"
                       >
-                        <LayoutDashboard className="w-4 h-4 text-emerald-600" />
+                        <LayoutDashboard className="w-4 h-4 text-[#0B63E5]" />
                         অ্যাডমিন ড্যাশবোর্ড
                       </Link>
                     )}
@@ -204,16 +203,16 @@ export const Navbar: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <Link
                 to="/login"
-                className="px-4 py-2 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-bold transition-colors"
+                className="px-4 py-2 border border-[#BFDBFE] dark:border-blue-800 bg-[#EFF6FF]/60 dark:bg-blue-950/40 hover:bg-[#EFF6FF] text-[#0B63E5] dark:text-blue-300 text-xs font-bold rounded-lg transition-colors whitespace-nowrap shrink-0"
               >
                 লগইন
               </Link>
               <Link
                 to="/register"
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-600/20"
+                className="px-4 py-2 bg-[#0B63E5] hover:bg-[#084FC7] text-white text-xs font-bold rounded-lg transition-colors shadow-sm shadow-blue-600/15 whitespace-nowrap shrink-0"
               >
                 রেজিস্ট্রেশন
               </Link>
@@ -225,13 +224,13 @@ export const Navbar: React.FC = () => {
         <div className="flex md:hidden items-center gap-2">
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+            className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-[#EFF6FF] hover:text-[#0B63E5] dark:hover:bg-slate-800 cursor-pointer"
           >
             {darkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5" />}
           </button>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+            className="p-2 text-[#0F2942] dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -240,18 +239,18 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Drawer Navigation */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-4 space-y-3 animate-fadeIn">
+        <div className="md:hidden bg-white dark:bg-slate-900 border-b border-[#E5EAF2] dark:border-slate-800 px-4 py-4 space-y-3">
           <Link
             to="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-bold text-slate-800 dark:text-slate-200 hover:text-emerald-600"
+            className="block py-2 text-sm font-bold text-[#0F2942] dark:text-slate-200 hover:text-[#0B63E5]"
           >
             হোম
           </Link>
           <Link
             to="/professionals"
             onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-bold text-slate-800 dark:text-slate-200 hover:text-emerald-600"
+            className="block py-2 text-sm font-bold text-[#0F2942] dark:text-slate-200 hover:text-[#0B63E5]"
           >
             পেশাজীবী তালিকা
           </Link>
@@ -263,7 +262,7 @@ export const Navbar: React.FC = () => {
                   <Link
                     to="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full py-2.5 bg-emerald-600 text-white font-bold text-center text-xs rounded-xl flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-[#0B63E5] hover:bg-[#084FC7] text-white font-bold text-center text-xs rounded-lg flex items-center justify-center gap-2"
                   >
                     <LayoutDashboard className="w-4 h-4" />
                     ড্যাশবোর্ড
@@ -272,9 +271,9 @@ export const Navbar: React.FC = () => {
                 <Link
                   to="/account"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-center text-xs rounded-xl flex items-center justify-center gap-2"
+                  className="w-full py-2.5 bg-[#EFF6FF] dark:bg-slate-800 text-[#0B63E5] dark:text-slate-200 font-bold text-center text-xs rounded-lg flex items-center justify-center gap-2 border border-[#BFDBFE] dark:border-slate-700"
                 >
-                  <User className="w-4 h-4 text-emerald-600" />
+                  <User className="w-4 h-4 text-[#0B63E5]" />
                   আমার প্রোফাইল
                 </Link>
                 <button
@@ -282,7 +281,7 @@ export const Navbar: React.FC = () => {
                     handleLogout();
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full py-2.5 text-red-600 bg-red-50 dark:bg-red-950/40 font-bold text-center text-xs rounded-xl cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-2.5 text-red-600 bg-red-50 dark:bg-red-950/40 font-bold text-center text-xs rounded-lg cursor-pointer flex items-center justify-center gap-2"
                 >
                   <LogOut className="w-4 h-4" />
                   লগআউট
@@ -293,14 +292,14 @@ export const Navbar: React.FC = () => {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="py-2.5 text-center bg-slate-100 dark:bg-slate-800 font-bold text-xs rounded-xl text-slate-800 dark:text-slate-200"
+                  className="py-2.5 text-center border border-[#BFDBFE] bg-[#EFF6FF]/60 font-bold text-xs rounded-lg text-[#0B63E5]"
                 >
                   লগইন
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="py-2.5 text-center bg-emerald-600 text-white font-bold text-xs rounded-xl"
+                  className="py-2.5 text-center bg-[#0B63E5] text-white font-bold text-xs rounded-lg"
                 >
                   রেজিস্ট্রেশন
                 </Link>

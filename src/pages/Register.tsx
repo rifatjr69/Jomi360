@@ -249,7 +249,7 @@ export const Register: React.FC = () => {
             আপনার প্রদত্ত তথ্যসমূহ জমা নেওয়া হয়েছে। অ্যাডমিন যাচাই করার পর আপনার প্রোফাইলটি পাবলিকলি প্রকাশিত হবে।
           </p>
           {needsEmailConfirm && (
-            <p className="text-teal-700 dark:text-teal-400 font-bold">
+            <p className="text-[#0B63E5] dark:text-blue-400 font-bold">
               আপনার ই-মেইলে ({email}) একটি কনফার্মেশন লিংক পাঠানো হয়েছে। লগইন করার পূর্বে ইনবক্স বা স্প্যাম ফোল্ডার চেক করে লিংকটিতে ক্লিক করুন।
             </p>
           )}
@@ -258,7 +258,7 @@ export const Register: React.FC = () => {
         <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
           <Link
             to={needsEmailConfirm ? '/login' : '/account'}
-            className="px-6 py-3 bg-teal-800 text-white font-bold text-xs rounded-xl shadow-lg"
+            className="px-6 py-3 bg-[#0B63E5] text-white font-bold text-xs rounded-xl shadow-lg"
           >
             {needsEmailConfirm ? 'লগইন পেজে যান' : 'আমার একাউন্টে যান'}
           </Link>
@@ -276,7 +276,7 @@ export const Register: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 py-10 space-y-8">
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 bg-teal-800 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-teal-900/20">
+        <div className="w-12 h-12 bg-[#0B63E5] text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-blue-600/15">
           <Compass className="w-7 h-7" />
         </div>
         <h1 className="text-3xl font-black text-slate-900 dark:text-white font-siliguri">
@@ -307,7 +307,7 @@ export const Register: React.FC = () => {
         {/* SECTION 1: PERSONAL & PROFESSIONAL INFO */}
         <div className="space-y-6">
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
-            <User className="w-5 h-5 text-teal-600" />
+            <User className="w-5 h-5 text-[#0B63E5]" />
             <span>১) ব্যক্তিগত ও পেশাগত তথ্য</span>
           </h3>
 
@@ -322,7 +322,7 @@ export const Register: React.FC = () => {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="যেমন: মোঃ ইমদাদুল হোসেন"
                 required
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0B63E5]"
               />
             </div>
 
@@ -336,7 +336,7 @@ export const Register: React.FC = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="example@domain.com"
                 required
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0B63E5]"
               />
             </div>
 
@@ -351,7 +351,7 @@ export const Register: React.FC = () => {
                 placeholder="01712345678"
                 required
                 maxLength={11}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0B63E5] font-mono"
               />
             </div>
 
@@ -363,7 +363,7 @@ export const Register: React.FC = () => {
                 value={professionId}
                 onChange={(e) => setProfessionId(e.target.value)}
                 required
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-teal-800 dark:text-teal-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-[#0B63E5] dark:text-blue-300 focus:outline-none focus:ring-2 focus:ring-[#0B63E5]"
               >
                 {professions.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -384,13 +384,13 @@ export const Register: React.FC = () => {
               onChange={(e) => setBio(e.target.value)}
               maxLength={500}
               placeholder="আপনার পেশাগত অভিজ্ঞতা ও সেবাসমূহ সম্পর্কে সংক্ষেপে লিখুন..."
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0B63E5]"
             />
           </div>
 
           {/* DYNAMIC EXTRA FIELDS BASED ON PROFESSION */}
-          <div className="bg-teal-50/50 dark:bg-teal-950/30 p-5 rounded-2xl border border-teal-100 dark:border-teal-900/50 space-y-4">
-            <h4 className="text-xs font-bold text-teal-900 dark:text-teal-300 uppercase tracking-wider">
+          <div className="bg-[#EFF6FF]/70 dark:bg-blue-950/30 p-5 rounded-2xl border border-[#DBEAFE] dark:border-blue-900/50 space-y-4">
+            <h4 className="text-xs font-bold text-[#0F2942] dark:text-blue-300 uppercase tracking-wider">
               {selectedProfObj?.name_bn || 'পেশা'} সংক্রান্ত অতিরিক্ত তথ্য
             </h4>
 
@@ -474,7 +474,7 @@ export const Register: React.FC = () => {
                         onClick={() => toggleTech(tech)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
                           selectedTechs.includes(tech)
-                            ? 'bg-teal-800 text-white border-teal-800'
+                            ? 'bg-[#0B63E5] text-white border-[#0B63E5]'
                             : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200'
                         }`}
                       >
@@ -497,7 +497,7 @@ export const Register: React.FC = () => {
                         onClick={() => toggleEquip(eq)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
                           selectedEquip.includes(eq)
-                            ? 'bg-emerald-700 text-white border-emerald-700'
+                            ? 'bg-[#0B63E5] text-white border-[#0B63E5]'
                             : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200'
                         }`}
                       >
@@ -638,7 +638,7 @@ export const Register: React.FC = () => {
         {/* SECTION 2: LOCATION */}
         <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-rose-500" />
+            <MapPin className="w-5 h-5 text-[#0B63E5]" />
             <span>২) লোকেশন (সারা বাংলাদেশ) *</span>
           </h3>
 
@@ -646,13 +646,13 @@ export const Register: React.FC = () => {
             <button
               type="button"
               onClick={() => setAddressPickerOpen(true)}
-              className="w-full py-4 px-5 border-2 border-dashed border-teal-500 dark:border-teal-600 bg-teal-50/40 dark:bg-teal-950/20 hover:bg-teal-100/50 rounded-2xl flex items-center justify-between text-teal-900 dark:text-teal-200 font-bold text-sm transition-colors cursor-pointer"
+              className="w-full py-4 px-5 border-2 border-dashed border-[#0B63E5] dark:border-[#0B63E5] bg-[#EFF6FF]/60 dark:bg-blue-950/20 hover:bg-[#EFF6FF]/50 rounded-2xl flex items-center justify-between text-[#0F2942] dark:text-blue-200 font-bold text-sm transition-colors cursor-pointer"
             >
               <span className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-rose-500" />
+                <MapPin className="w-5 h-5 text-[#0B63E5]" />
                 {selectedLocation?.displayText || 'ঠিকানা / এলাকা নির্বাচন করুন (ক্লিক করুন)'}
               </span>
-              <span className="text-xs bg-teal-800 text-white px-3 py-1 rounded-lg">
+              <span className="text-xs bg-[#0B63E5] text-white px-3 py-1 rounded-lg">
                 নির্বাচন করুন
               </span>
             </button>
@@ -675,7 +675,7 @@ export const Register: React.FC = () => {
         {/* SECTION 3: NID & SECURITY */}
         <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800">
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <FileCheck className="w-5 h-5 text-teal-600" />
+            <FileCheck className="w-5 h-5 text-[#0B63E5]" />
             <span>৩) এনআইডি (NID) তথ্য ও সিকিউরিটি</span>
           </h3>
 
@@ -690,7 +690,7 @@ export const Register: React.FC = () => {
                 onChange={(e) => setNidNumber(e.target.value)}
                 placeholder="যেমন: 19901234567890123"
                 required
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-medium focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-medium focus:outline-none focus:ring-2 focus:ring-[#0B63E5]"
               />
             </div>
 
@@ -704,11 +704,11 @@ export const Register: React.FC = () => {
                   type="file"
                   accept="image/png, image/jpeg, image/webp"
                   onChange={handleProfilePhotoChange}
-                  className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-teal-800 file:text-white hover:file:bg-teal-900 cursor-pointer"
+                  className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#0B63E5] file:text-white hover:file:bg-[#084FC7] cursor-pointer"
                 />
 
                 {profilePhotoPreview && (
-                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-teal-600 shadow-md">
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#0B63E5] shadow-md">
                     <img src={profilePhotoPreview} alt="Preview" className="w-full h-full object-cover" />
                   </div>
                 )}
@@ -723,7 +723,7 @@ export const Register: React.FC = () => {
                   type="file"
                   accept="image/png, image/jpeg, image/webp"
                   onChange={handleNidPhotoChange}
-                  className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-teal-800 file:text-white hover:file:bg-teal-900 cursor-pointer"
+                  className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#0B63E5] file:text-white hover:file:bg-[#084FC7] cursor-pointer"
                 />
 
                 {nidPhotoPreview && (
@@ -746,7 +746,7 @@ export const Register: React.FC = () => {
                   placeholder="••••••••"
                   required
                   minLength={8}
-                  className="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0B63E5]"
                 />
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <button
@@ -788,7 +788,7 @@ export const Register: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-teal-800 hover:bg-teal-900 dark:bg-teal-700 dark:hover:bg-teal-600 text-white font-bold text-base rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-teal-900/30 transition-all cursor-pointer disabled:opacity-60"
+            className="w-full py-4 bg-[#0B63E5] hover:bg-[#084FC7] dark:bg-[#0B63E5] dark:hover:bg-[#084FC7] text-white font-bold text-base rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-blue-600/20 transition-all cursor-pointer disabled:opacity-60"
           >
             {loading ? (
               <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -800,7 +800,7 @@ export const Register: React.FC = () => {
           <div className="text-center text-xs text-slate-600 dark:text-slate-400 space-y-2">
             <p>
               ইতিমধ্যে অ্যাকাউন্ট আছে?{' '}
-              <Link to="/login" className="font-bold text-teal-700 dark:text-teal-400 hover:underline">
+              <Link to="/login" className="font-bold text-[#0B63E5] dark:text-blue-400 hover:underline">
                 লগইন করুন
               </Link>
             </p>

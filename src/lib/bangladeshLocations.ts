@@ -3,7 +3,7 @@ import type { Division, District, Upazila, Profession, SiteSettings } from '../t
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   site_name: 'জমি৩৬০',
   site_name_en: 'Jomi360',
-  hero_title: 'আপনার এলাকার দক্ষ সার্ভেয়ার, দলিল লেখক, এডভোকেট, সিভিল কোর্ট কমিশনার ও ব্যারিস্টার খুঁজুন',
+  hero_title: 'জমি ও আইনসেবা-সংশ্লিষ্ট পেশাজীবীদের খুঁজুন এক জায়গায় সার্ভেয়ার, দলিল লেখক ও আইনজীবীদের পেশাগত তথ্য দেখুন',
   video_url: '',
   footer_about:
     'বাংলাদেশের সর্ববৃহৎ পেশাজীবী ডিরেক্টরি। জমিজমা সংক্রান্ত যেকোনো কাজে আপনার এলাকার সঠিক ও অভিজ্ঞ সার্ভেয়ার, আইনি পরামর্শক ও দলিল লেখক সহজেই খুঁজুন।',

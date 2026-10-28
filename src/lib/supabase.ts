@@ -1160,8 +1160,19 @@ export async function syncAuthenticatedUserProfile(authUser: User): Promise<Prof
       return normalizeProfileRow(existingRow);
     }
 
-    // 4. No profile row exists yet -> auto-insert/upsert with id = authUser.id & email = authUser.email
+    // 4. No profile row exists yet -> if complete pending registration data exists, upsert immediately;
+    //    otherwise return null cleanly so /account opens in "Create Your Professional Profile" mode!
     const meta = authUser.user_metadata || {};
+    const hasCompletePending = Boolean(
+      (pendingData?.phone || meta.phone) &&
+      (pendingData?.division_id || meta.division_id) &&
+      (pendingData?.district_id || meta.district_id)
+    );
+
+    if (!hasCompletePending) {
+      return null;
+    }
+
     const defaultProfId = lookupCache.professions[0]?.id;
     const defaultDivId = lookupCache.divisions[0]?.id;
     const defaultDisId = lookupCache.districts[0]?.id;
@@ -1184,7 +1195,7 @@ export async function syncAuthenticatedUserProfile(authUser: User): Promise<Prof
       bio: pendingData?.bio ?? null,
       extra_info: pendingData?.extra_info ?? meta.extra_info ?? {},
       role: 'user',
-      status: 'pending',
+      status: 'approved',
       is_verified: false,
     });
 
@@ -1306,7 +1317,7 @@ export async function registerProfessionalUser(params: RegisterProfessionalParam
       bio: params.bio,
       extra_info: params.extra_info || {},
       role: 'user',
-      status: 'pending',
+      status: 'approved',
       is_verified: false,
     });
 

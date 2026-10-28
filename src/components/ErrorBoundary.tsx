@@ -26,12 +26,12 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4">
-          <div className="max-w-md w-full bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 text-center">
+        <div className="min-h-screen flex items-center justify-center bg-[#F4F7FB] dark:bg-slate-950 px-4">
+          <div className="max-w-md w-full bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-lg border border-[#E2E8F0] dark:border-slate-800 text-center">
             <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
               ⚠️
             </div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+            <h2 className="text-xl font-bold text-[#0F2942] dark:text-slate-100 mb-2">
               কিছু একটা সমস্যা হয়েছে
             </h2>
             <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm">
@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition shadow-md shadow-emerald-600/20"
+              className="w-full py-3 bg-[#0B63E5] hover:bg-[#084FC7] text-white font-bold rounded-xl transition shadow-sm cursor-pointer"
             >
               পৃষ্ঠা রিফ্রেশ করুন
             </button>

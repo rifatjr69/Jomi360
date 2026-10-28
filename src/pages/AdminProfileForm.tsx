@@ -43,11 +43,13 @@ export const AdminProfileForm: React.FC = () => {
   const [upazilas, setUpazilas] = useState<Upazila[]>([]);
 
   // Form Fields — Section 1: Basic Info
+  const [userSerial, setUserSerial] = useState<number>(1);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [nidNumber, setNidNumber] = useState('');
   const [professionId, setProfessionId] = useState('');
+  const [servicesText, setServicesText] = useState('');
   const [bio, setBio] = useState('');
 
   // Form Fields — Section 2: Photos
@@ -101,11 +103,13 @@ export const AdminProfileForm: React.FC = () => {
         if (isEditMode && id) {
           const existing = await adminGetProfileById(id);
           if (existing) {
+            setUserSerial(existing.user_serial || 1);
             setFullName(existing.full_name || '');
             setPhone(existing.phone || '');
             setEmail(existing.email || '');
             setNidNumber(existing.nid_number || '');
             setProfessionId(existing.profession_id || (profs[0]?.id ?? ''));
+            setServicesText(existing.extra_info?.services || '');
             setBio(existing.bio || '');
             setProfilePhotoUrl(existing.profile_photo_url || '');
             setCoverPhotoUrl(existing.cover_photo_url || '');
@@ -241,6 +245,7 @@ export const AdminProfileForm: React.FC = () => {
 
       const mergedExtra = {
         ...extraInfo,
+        services: servicesText.trim(),
         ...(selectedLocation.division_name ? { _division_name: selectedLocation.division_name } : {}),
         ...(selectedLocation.district_name ? { _district_name: selectedLocation.district_name } : {}),
         ...(selectedLocation.upazila_name ? { _upazila_name: selectedLocation.upazila_name } : {}),
@@ -292,7 +297,7 @@ export const AdminProfileForm: React.FC = () => {
   const previewProfile = {
     id: id || 'preview-id',
     auth_user_id: null,
-    user_serial: 999,
+    user_serial: isEditMode ? userSerial : 1,
     full_name: fullName || 'পূর্ণ নাম এখানে দেখাবে',
     phone: toEnglishDigits(phone) || '017XXXXXXXX',
     email: email || 'email@domain.com',
@@ -308,7 +313,10 @@ export const AdminProfileForm: React.FC = () => {
     profile_photo_url: profilePhotoUrl,
     cover_photo_url: coverPhotoUrl,
     bio: bio || 'এখানে আপনার সংক্ষিপ্ত বিবরণ বা বায়ো প্রদর্শিত হবে...',
-    extra_info: extraInfo,
+    extra_info: {
+      ...extraInfo,
+      services: servicesText.trim(),
+    },
     role: 'user' as const,
     status,
     is_verified: isVerified,
@@ -318,7 +326,7 @@ export const AdminProfileForm: React.FC = () => {
   if (authLoading || loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-24 flex flex-col items-center justify-center space-y-4">
-        <div className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-[#0B63E5] border-t-transparent rounded-full animate-spin"></div>
         <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 font-siliguri">
           ফর্ম লোড হচ্ছে...
         </p>
@@ -349,7 +357,7 @@ export const AdminProfileForm: React.FC = () => {
 
         <Link
           to="/dashboard"
-          className="text-xs font-bold text-teal-700 dark:text-teal-400 hover:underline hidden sm:block"
+          className="text-xs font-bold text-[#0B63E5] dark:text-blue-400 hover:underline hidden sm:block"
         >
           ← অ্যাডমিন প্যানেলে ফিরুন
         </Link>
@@ -362,7 +370,7 @@ export const AdminProfileForm: React.FC = () => {
           {/* SECTION 1: মৌলিক তথ্য (Basic Info) */}
           <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-6">
             <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
-              <span className="w-7 h-7 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-400 text-xs font-bold flex items-center justify-center">
+              <span className="w-7 h-7 rounded-xl bg-[#EFF6FF] dark:bg-blue-950 text-[#0B63E5] dark:text-blue-400 text-xs font-bold flex items-center justify-center">
                 ১
               </span>
               <span>মৌলিক তথ্য</span>
@@ -377,7 +385,7 @@ export const AdminProfileForm: React.FC = () => {
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="যেমন: প্রকৌশলী মো. রফিকুল ইসলাম"
                   required
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-teal-500"
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-[#0B63E5]"
                 />
               </div>
 
@@ -391,7 +399,7 @@ export const AdminProfileForm: React.FC = () => {
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="01712345678"
                   required
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-mono font-medium text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-teal-500"
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-mono font-medium text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-[#0B63E5]"
                 />
               </div>
 
@@ -412,7 +420,7 @@ export const AdminProfileForm: React.FC = () => {
                   value={professionId}
                   onChange={(e) => setProfessionId(e.target.value)}
                   required
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-teal-800 dark:text-teal-300 focus:ring-2 focus:ring-teal-500"
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-[#0B63E5] dark:text-blue-300 focus:ring-2 focus:ring-[#0B63E5]"
                 >
                   {professions.map((prof) => (
                     <option key={prof.id} value={prof.id}>
@@ -434,6 +442,20 @@ export const AdminProfileForm: React.FC = () => {
                   className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-mono text-slate-900 dark:text-slate-100"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 text-xs mb-1">
+                সেবা সমূহ (কার্ডে সরাসরি প্রদর্শিত হবে)
+              </label>
+              <textarea
+                value={servicesText}
+                onChange={(e) => setServicesText(e.target.value)}
+                rows={2}
+                maxLength={300}
+                placeholder="যেমন: 👉 বিল্ডিং প্লানিং, 👉 স্ট্রাকচারাল ডিজাইন, 👉 ডিজিটাল সার্ভে..."
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-medium text-slate-900 dark:text-slate-100"
+              />
             </div>
 
             <div>
@@ -459,7 +481,7 @@ export const AdminProfileForm: React.FC = () => {
           {/* SECTION 2: ছবি (Photos) */}
           <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-6">
             <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
-              <span className="w-7 h-7 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-400 text-xs font-bold flex items-center justify-center">
+              <span className="w-7 h-7 rounded-xl bg-[#EFF6FF] dark:bg-blue-950 text-[#0B63E5] dark:text-blue-400 text-xs font-bold flex items-center justify-center">
                 ২
               </span>
               <span>প্রোফাইল ও কভার ছবি</span>
@@ -476,14 +498,14 @@ export const AdminProfileForm: React.FC = () => {
                     src={profilePhotoUrl}
                     name={fullName || 'User'}
                     size="lg"
-                    className="ring-4 ring-teal-500/20"
+                    className="ring-4 ring-blue-500/20"
                   />
                   <div className="space-y-2 flex-1">
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       onChange={(e) => handleFileChange(e, 'profile')}
-                      className="block w-full text-[11px] text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-teal-800 file:text-white file:font-bold hover:file:bg-teal-900 cursor-pointer"
+                      className="block w-full text-[11px] text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-[#0B63E5] file:text-white file:font-bold hover:file:bg-[#084FC7] cursor-pointer"
                     />
                     {profilePhotoUrl && (
                       <button
@@ -530,7 +552,7 @@ export const AdminProfileForm: React.FC = () => {
           {/* SECTION 3: ঠিকানা (Address) */}
           <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-6">
             <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
-              <span className="w-7 h-7 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-400 text-xs font-bold flex items-center justify-center">
+              <span className="w-7 h-7 rounded-xl bg-[#EFF6FF] dark:bg-blue-950 text-[#0B63E5] dark:text-blue-400 text-xs font-bold flex items-center justify-center">
                 ৩
               </span>
               <span>ঠিকানা / এলাকা নির্বাচন *</span>
@@ -547,12 +569,12 @@ export const AdminProfileForm: React.FC = () => {
                   className="w-full py-3.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-slate-700 rounded-2xl text-left flex items-center justify-between text-slate-900 dark:text-slate-100 font-bold cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-rose-500 shrink-0" />
+                    <MapPin className="w-5 h-5 text-[#0B63E5] shrink-0" />
                     <span className="truncate">
                       {selectedLocation?.displayText || 'এলাকা নির্বাচন করতে ক্লিক করুন (বাধ্যতামূলক)'}
                     </span>
                   </div>
-                  <span className="text-teal-700 dark:text-teal-400 text-xs">পরিবর্তন ❯</span>
+                  <span className="text-[#0B63E5] dark:text-blue-400 text-xs">পরিবর্তন ❯</span>
                 </button>
               </div>
 
@@ -574,7 +596,7 @@ export const AdminProfileForm: React.FC = () => {
           {/* SECTION 4: পেশাভিত্তিক বিশেষ তথ্য (Profession-specific Info stored in extra_info) */}
           <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-6">
             <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
-              <span className="w-7 h-7 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-400 text-xs font-bold flex items-center justify-center">
+              <span className="w-7 h-7 rounded-xl bg-[#EFF6FF] dark:bg-blue-950 text-[#0B63E5] dark:text-blue-400 text-xs font-bold flex items-center justify-center">
                 ৪
               </span>
               <span>পেশাভিত্তিক বিশেষ তথ্য ({selectedProfession?.name_bn || 'সাধারণ'})</span>
@@ -761,7 +783,7 @@ export const AdminProfileForm: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleAddCustomField}
-                    className="px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white font-bold rounded-xl flex items-center justify-center gap-1 cursor-pointer"
+                    className="px-4 py-2 bg-[#0B63E5] hover:bg-[#084FC7] text-white font-bold rounded-xl flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     <span>যোগ</span>
@@ -775,7 +797,7 @@ export const AdminProfileForm: React.FC = () => {
                       .map(([k, v]) => (
                         <span
                           key={k}
-                          className="inline-flex items-center gap-2 bg-teal-50 dark:bg-teal-950/60 text-teal-900 dark:text-teal-200 px-3 py-1.5 rounded-xl border border-teal-200 dark:border-teal-800 font-mono text-[11px]"
+                          className="inline-flex items-center gap-2 bg-[#EFF6FF] dark:bg-blue-950/60 text-[#0F2942] dark:text-blue-200 px-3 py-1.5 rounded-xl border border-[#BFDBFE] dark:border-[#0B63E5] font-mono text-[11px]"
                         >
                           <strong>{k}:</strong> {String(v)}
                           <button
@@ -796,7 +818,7 @@ export const AdminProfileForm: React.FC = () => {
           {/* SECTION 5: স্ট্যাটাস ও প্রকাশ (Status & Publishing) */}
           <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-6">
             <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
-              <span className="w-7 h-7 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-400 text-xs font-bold flex items-center justify-center">
+              <span className="w-7 h-7 rounded-xl bg-[#EFF6FF] dark:bg-blue-950 text-[#0B63E5] dark:text-blue-400 text-xs font-bold flex items-center justify-center">
                 ৫
               </span>
               <span>স্ট্যাটাস ও ভেরিফিকেশন</span>
@@ -808,7 +830,7 @@ export const AdminProfileForm: React.FC = () => {
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as ProfileStatus)}
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-teal-800 dark:text-teal-300"
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-[#0B63E5] dark:text-blue-300"
                 >
                   <option value="approved">অনুমোদিত (Approved - হোম পেজে দেখাবে)</option>
                   <option value="pending">যাচাইয়ের অপেক্ষায় (Pending)</option>
@@ -823,7 +845,7 @@ export const AdminProfileForm: React.FC = () => {
                     type="checkbox"
                     checked={isVerified}
                     onChange={(e) => setIsVerified(e.target.checked)}
-                    className="w-5 h-5 rounded text-teal-600 focus:ring-teal-500"
+                    className="w-5 h-5 rounded text-[#0B63E5] focus:ring-[#0B63E5]"
                   />
                   <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">
                     অ্যাডমিন ভেরিফাইড ব্যাজ দিন (Verified Badge)
@@ -843,7 +865,7 @@ export const AdminProfileForm: React.FC = () => {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-8 py-3 bg-teal-800 hover:bg-teal-900 dark:bg-teal-700 dark:hover:bg-teal-600 text-white font-bold text-sm rounded-2xl shadow-lg shadow-teal-900/20 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                className="px-8 py-3 bg-[#0B63E5] hover:bg-[#084FC7] dark:bg-[#0B63E5] dark:hover:bg-[#084FC7] text-white font-bold text-sm rounded-2xl shadow-lg shadow-blue-600/15 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 <span>
@@ -856,16 +878,16 @@ export const AdminProfileForm: React.FC = () => {
 
         {/* Live Preview Card on Right */}
         <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-24">
-          <div className="bg-gradient-to-br from-teal-900 to-slate-900 text-white p-4 rounded-3xl shadow-lg border border-teal-500/30">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-teal-300 mb-2 flex items-center gap-1.5">
+          <div className="bg-white dark:bg-slate-900 text-[#0F2942] dark:text-white p-5 rounded-2xl shadow-sm border border-[#E2E8F0] dark:border-slate-800">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#0B63E5] dark:text-blue-400 mb-2 flex items-center gap-1.5">
               <span>👁️</span> লাইভ কার্ড প্রিভিউ (Home Preview)
             </h4>
-            <p className="text-[11px] text-slate-300 leading-relaxed mb-4">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
               হোম পেজ ও ডিরেক্টরিতে এই পেশাজীবীর কার্ডটি যেভাবে প্রদর্শিত হবে:
             </p>
 
-            <div className="scale-95 origin-top">
-              <ProfileCard profile={previewProfile} />
+            <div>
+              <ProfileCard profile={previewProfile} isPreview={true} />
             </div>
           </div>
         </div>

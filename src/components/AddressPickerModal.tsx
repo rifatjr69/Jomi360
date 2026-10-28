@@ -240,24 +240,24 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-[#E2E8F0] dark:border-slate-800 w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
         {/* Modal Header */}
-        <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+        <div className="p-4 bg-[#0B63E5] text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-teal-400" />
-            <h3 className="font-semibold text-lg">ঠিকানা নির্বাচন করুন</h3>
+            <MapPin className="w-5 h-5 text-white" />
+            <h3 className="font-bold text-lg">ঠিকানা নির্বাচন করুন</h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Breadcrumb Navigation */}
-        <div className="p-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center gap-1 text-sm font-medium overflow-x-auto shrink-0">
+        <div className="p-3 bg-[#F8FAFC] dark:bg-slate-800 border-b border-[#E2E8F0] dark:border-slate-700 flex items-center gap-1 text-sm font-medium overflow-x-auto shrink-0">
           <button
             type="button"
             onClick={() => {
@@ -268,7 +268,7 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
               setSearchTerm('');
             }}
             className={`hover:underline whitespace-nowrap transition-colors cursor-pointer ${
-              step === 1 ? 'text-teal-700 dark:text-teal-400 font-bold' : 'text-slate-600 dark:text-slate-300'
+              step === 1 ? 'text-[#0B63E5] dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300'
             }`}
           >
             বিভাগ
@@ -286,7 +286,7 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
                   setSearchTerm('');
                 }}
                 className={`hover:underline whitespace-nowrap transition-colors cursor-pointer ${
-                  step === 2 ? 'text-teal-700 dark:text-teal-400 font-bold' : 'text-slate-600 dark:text-slate-300'
+                  step === 2 ? 'text-[#0B63E5] dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300'
                 }`}
               >
                 {selectedDiv.name_bn}
@@ -304,7 +304,7 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
                   setSearchTerm('');
                 }}
                 className={`hover:underline whitespace-nowrap transition-colors cursor-pointer ${
-                  step === 3 ? 'text-teal-700 dark:text-teal-400 font-bold' : 'text-slate-600 dark:text-slate-300'
+                  step === 3 ? 'text-[#0B63E5] dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-300'
                 }`}
               >
                 {selectedDis.name_bn}
@@ -315,7 +315,7 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
           {selectedUpa && (
             <>
               <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
-              <span className="text-teal-800 dark:text-teal-300 font-bold whitespace-nowrap">{selectedUpa.name_bn}</span>
+              <span className="text-[#0B63E5] dark:text-blue-300 font-bold whitespace-nowrap">{selectedUpa.name_bn}</span>
             </>
           )}
         </div>
@@ -335,7 +335,7 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
                   ? 'জেলার নাম খুঁজুন...'
                   : 'উপজেলার নাম খুঁজুন...'
               }
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full pl-9 pr-4 py-2 bg-[#F8FAFC] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0B63E5]"
             />
           </div>
         </div>
@@ -344,7 +344,7 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
         <div className="p-2 overflow-y-auto flex-1 divide-y divide-slate-100 dark:divide-slate-800">
           {loading ? (
             <div className="p-8 text-center text-slate-400 text-sm">
-              <div className="animate-spin w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+              <div className="animate-spin w-6 h-6 border-2 border-[#0B63E5] border-t-transparent rounded-full mx-auto mb-2"></div>
               লোড হচ্ছে...
             </div>
           ) : (
@@ -355,10 +355,10 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
                   <button
                     type="button"
                     onClick={handleClearAll}
-                    className="w-full p-3 text-left hover:bg-teal-50 dark:hover:bg-teal-950/40 rounded-xl transition-colors flex items-center justify-between text-teal-800 dark:text-teal-300 font-semibold text-sm mb-1 cursor-pointer"
+                    className="w-full p-3 text-left hover:bg-[#EFF6FF] dark:hover:bg-blue-950/40 rounded-xl transition-colors flex items-center justify-between text-[#0B63E5] dark:text-blue-300 font-semibold text-sm mb-1 cursor-pointer"
                   >
                     <span>সকল বাংলাদেশ (সব এলাকার পেশাজীবী)</span>
-                    <Check className="w-4 h-4 text-teal-600" />
+                    <Check className="w-4 h-4 text-[#0B63E5]" />
                   </button>
 
                   {filteredDivisions.length === 0 ? (
@@ -369,10 +369,10 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
                         type="button"
                         key={div.id}
                         onClick={() => handleSelectDivision(div)}
-                        className="w-full p-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center justify-between text-slate-800 dark:text-slate-200 text-sm font-medium cursor-pointer"
+                        className="w-full p-3 text-left hover:bg-[#F8FAFC] dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center justify-between text-[#0F2942] dark:text-slate-200 text-sm font-medium cursor-pointer"
                       >
                         <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-teal-500"></span>
+                          <span className="w-2 h-2 rounded-full bg-[#0B63E5]"></span>
                           {div.name_bn} বিভাগ
                         </span>
                         <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -388,10 +388,10 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
                   <button
                     type="button"
                     onClick={handleSelectEntireDivision}
-                    className="w-full p-3 text-left bg-teal-50 dark:bg-teal-950/50 hover:bg-teal-100 dark:hover:bg-teal-900/60 rounded-xl transition-colors flex items-center justify-between text-teal-800 dark:text-teal-300 font-semibold text-sm mb-2 cursor-pointer"
+                    className="w-full p-3 text-left bg-[#EFF6FF] dark:bg-blue-950/50 hover:bg-[#DBEAFE] dark:hover:bg-blue-900/60 rounded-xl transition-colors flex items-center justify-between text-[#0B63E5] dark:text-blue-300 font-semibold text-sm mb-2 cursor-pointer"
                   >
                     <span>শুধু {selectedDiv?.name_bn} বিভাগের সব এলাকা</span>
-                    <Check className="w-4 h-4 text-teal-600" />
+                    <Check className="w-4 h-4 text-[#0B63E5]" />
                   </button>
 
                   {filteredDistricts.length === 0 ? (
@@ -402,7 +402,7 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
                         type="button"
                         key={dis.id}
                         onClick={() => handleSelectDistrict(dis)}
-                        className="w-full p-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center justify-between text-slate-800 dark:text-slate-200 text-sm font-medium cursor-pointer"
+                        className="w-full p-3 text-left hover:bg-[#F8FAFC] dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center justify-between text-[#0F2942] dark:text-slate-200 text-sm font-medium cursor-pointer"
                       >
                         <span>{dis.name_bn} জেলা</span>
                         <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -418,10 +418,10 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
                   <button
                     type="button"
                     onClick={handleSelectEntireDistrict}
-                    className="w-full p-3 text-left bg-teal-50 dark:bg-teal-950/50 hover:bg-teal-100 dark:hover:bg-teal-900/60 rounded-xl transition-colors flex items-center justify-between text-teal-800 dark:text-teal-300 font-semibold text-sm mb-2 cursor-pointer"
+                    className="w-full p-3 text-left bg-[#EFF6FF] dark:bg-blue-950/50 hover:bg-[#DBEAFE] dark:hover:bg-blue-900/60 rounded-xl transition-colors flex items-center justify-between text-[#0B63E5] dark:text-blue-300 font-semibold text-sm mb-2 cursor-pointer"
                   >
                     <span>শুধু {selectedDis?.name_bn} জেলার সব উপজেলা</span>
-                    <Check className="w-4 h-4 text-teal-600" />
+                    <Check className="w-4 h-4 text-[#0B63E5]" />
                   </button>
 
                   {filteredUpazilas.length === 0 ? (
@@ -430,7 +430,7 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
                       <button
                         type="button"
                         onClick={handleSelectEntireDistrict}
-                        className="px-5 py-2.5 bg-teal-800 hover:bg-teal-900 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer transition-colors"
+                        className="px-5 py-2.5 bg-[#0B63E5] hover:bg-[#084FC7] text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer transition-colors"
                       >
                         {selectedDis?.name_bn} জেলা সদর নির্বাচন করুন
                       </button>
@@ -441,10 +441,10 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
                         type="button"
                         key={upa.id}
                         onClick={() => handleSelectUpazila(upa)}
-                        className="w-full p-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center justify-between text-slate-800 dark:text-slate-200 text-sm font-medium cursor-pointer"
+                        className="w-full p-3 text-left hover:bg-[#F8FAFC] dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center justify-between text-[#0F2942] dark:text-slate-200 text-sm font-medium cursor-pointer"
                       >
                         <span>{upa.name_bn}</span>
-                        <Check className="w-4 h-4 text-teal-600 opacity-80" />
+                        <Check className="w-4 h-4 text-[#0B63E5] opacity-80" />
                       </button>
                     ))
                   )}
@@ -455,7 +455,7 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+        <div className="p-3 bg-[#F8FAFC] dark:bg-slate-800/80 border-t border-[#E2E8F0] dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
           {step > 1 && (
             <button
               type="button"
@@ -463,7 +463,7 @@ export const AddressPickerModal: React.FC<AddressPickerModalProps> = ({
                 if (step === 3) setStep(2);
                 else if (step === 2) setStep(1);
               }}
-              className="flex items-center gap-1 text-teal-700 dark:text-teal-400 hover:underline font-semibold cursor-pointer"
+              className="flex items-center gap-1 text-[#0B63E5] dark:text-blue-400 hover:underline font-semibold cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               পূর্ববর্তী ধাপ

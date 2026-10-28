@@ -32,6 +32,7 @@ import {
   toggleHidePostInDb,
   deletePostInDb,
   fetchProfessions,
+  fetchDivisions,
   fetchSiteSettings,
   updateSiteSettingsInDb,
   resolveLocationNames,
@@ -39,7 +40,7 @@ import {
   normalizeBn,
   translateSupabaseError,
 } from '../lib/supabase';
-import type { Profile, Post, Profession, SiteSettings } from '../types/database';
+import type { Profile, Post, Profession, Division, ProfileStatus, SiteSettings } from '../types/database';
 
 export const Dashboard: React.FC = () => {
   const { profile: currentUserProfile } = useAuth();
@@ -50,6 +51,7 @@ export const Dashboard: React.FC = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [professions, setProfessions] = useState<Profession[]>([]);
+  const [divisions, setDivisions] = useState<Division[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -57,6 +59,7 @@ export const Dashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [professionFilter, setProfessionFilter] = useState('all');
+  const [divisionFilter, setDivisionFilter] = useState('all');
 
   // Admin Create Post Form State
   const [selectedPostProfileId, setSelectedPostProfileId] = useState('');
@@ -94,15 +97,17 @@ export const Dashboard: React.FC = () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const [profsData, postsData, profsList, settingsData] = await Promise.all([
+      const [profsData, postsData, profsList, divsList, settingsData] = await Promise.all([
         adminFetchAllProfiles(),
         fetchAllPostsForAdmin(),
         fetchProfessions(),
+        fetchDivisions(),
         fetchSiteSettings(),
       ]);
       setProfiles(profsData);
       setPosts(postsData);
       setProfessions(profsList);
+      setDivisions(divsList);
       if (settingsData) {
         setSettingsForm(settingsData);
       }
@@ -121,7 +126,7 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   // Handlers for profiles
-  const handleStatusChange = async (profileId: string, status: 'approved' | 'rejected' | 'suspended') => {
+  const handleStatusChange = async (profileId: string, status: ProfileStatus) => {
     try {
       await adminUpdateProfileStatus(profileId, status);
       await loadData();
@@ -136,7 +141,7 @@ export const Dashboard: React.FC = () => {
     try {
       await adminToggleVerified(profileId, !current);
       await loadData();
-      showToast(!current ? 'ভেরিফাইড ব্যাজ প্রদান করা হয়েছে।' : 'ভেরিফাইড ব্যাজ সরানো হয়েছে।', 'success');
+      showToast(!current ? 'অ্যাডমিন যাচাইকৃত ব্যাজ প্রদান করা হয়েছে।' : 'ভেরিফাইড ব্যাজ সরানো হয়েছে।', 'success');
     } catch (err: any) {
       console.error('[Dashboard] handleToggleVerified error:', err);
       showToast(translateSupabaseError(err, 'ভেরিফিকেশন আপডেট ব্যর্থ হয়েছে।'), 'error');
@@ -272,14 +277,25 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // Filter profiles for User Management (supports Bangla & English digits + Unicode normalization)
+  // Filter profiles for User Management (supports Bangla & English digits + Unicode normalization + Location)
   const filteredProfiles = profiles.filter((p) => {
+    const loc = resolveLocationNames(
+      p.division_id,
+      p.district_id,
+      p.upazila_id,
+      p.extra_info
+    );
+    const areaFull = [loc.upazila_name, loc.district_name, loc.division_name]
+      .filter(Boolean)
+      .join(' ');
+
     const qRaw = searchQuery.trim();
     let matchesSearch = true;
     if (qRaw) {
       const qLower = qRaw.toLowerCase();
       const qNorm = normalizeBn(qRaw).toLowerCase();
       const qEn = toEnglishDigits(qRaw).replace(/^#/, '').toLowerCase();
+      const serialPadded = String(p.user_serial || 1).padStart(5, '0');
 
       matchesSearch =
         (p.full_name || '').toLowerCase().includes(qLower) ||
@@ -287,7 +303,9 @@ export const Dashboard: React.FC = () => {
         toEnglishDigits(p.phone || '').includes(qEn) ||
         Boolean(p.email && p.email.toLowerCase().includes(qLower)) ||
         String(p.user_serial || '').includes(qEn) ||
-        toEnglishDigits(p.nid_number || '').includes(qEn);
+        serialPadded.includes(qEn) ||
+        toEnglishDigits(p.nid_number || '').includes(qEn) ||
+        normalizeBn(areaFull).toLowerCase().includes(qNorm);
     }
 
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
@@ -302,13 +320,23 @@ export const Dashboard: React.FC = () => {
         (Boolean(profNameNorm) && rowProfNorm === profNameNorm);
     }
 
-    return matchesSearch && matchesStatus && matchesProf;
+    let matchesDivision = true;
+    if (divisionFilter !== 'all') {
+      const selectedDiv = divisions.find((dv) => String(dv.id) === String(divisionFilter));
+      const divNameNorm = normalizeBn(selectedDiv?.name_bn || '');
+      const rowDivNorm = normalizeBn(loc.division_name || '');
+      matchesDivision =
+        String(p.division_id) === String(divisionFilter) ||
+        (Boolean(divNameNorm) && rowDivNorm === divNameNorm);
+    }
+
+    return matchesSearch && matchesStatus && matchesProf && matchesDivision;
   });
 
   if (loading) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-[#0B63E5] border-t-transparent rounded-full animate-spin"></div>
         <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 font-siliguri">
           অ্যাডমিন ড্যাশবোর্ড লোড হচ্ছে...
         </p>
@@ -325,23 +353,21 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Top Header */}
-      <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none"></div>
-
+      <div className="bg-white dark:bg-slate-900 text-[#0F2942] dark:text-white rounded-2xl p-6 sm:p-8 border border-[#E2E8F0] dark:border-slate-800 shadow-[0_2px_12px_rgba(15,41,66,0.05)] flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden">
         <div className="flex items-center gap-4 relative z-10">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-amber-500 flex items-center justify-center text-white shadow-lg">
+          <div className="w-14 h-14 rounded-2xl bg-[#0B63E5] flex items-center justify-center text-white shadow-md shadow-blue-600/20">
             <LayoutDashboard className="w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-2xl font-black font-siliguri">অ্যাডমিন কন্ট্রোল প্যানেল</h1>
-            <p className="text-xs text-slate-400">জমি৩৬০ ডিরেক্টরি ম্যানেজমেন্ট ও মডারেশন</p>
+            <h1 className="text-2xl font-black font-siliguri text-[#0F2942] dark:text-white">অ্যাডমিন কন্ট্রোল প্যানেল</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">জমি৩৬০ ডিরেক্টরি ম্যানেজমেন্ট ও মডারেশন</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3 relative z-10">
           <Link
             to="/dashboard/profiles/new"
-            className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition"
+            className="px-5 py-3 bg-[#0B63E5] hover:bg-[#084FC7] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm shadow-blue-600/15 transition"
           >
             <Plus className="w-4 h-4" />
             <span>নতুন প্রফেশনাল যোগ করুন</span>
@@ -349,7 +375,7 @@ export const Dashboard: React.FC = () => {
           <button
             type="button"
             onClick={loadData}
-            className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition cursor-pointer"
+            className="p-3 bg-[#F8FAFC] dark:bg-slate-800 hover:bg-[#EFF6FF] dark:hover:bg-slate-700 text-[#0F2942] dark:text-slate-300 border border-[#E2E8F0] dark:border-slate-700 rounded-xl transition cursor-pointer"
             title="রিফ্রেশ করুন"
           >
             <RefreshCw className="w-4 h-4" />
@@ -381,7 +407,7 @@ export const Dashboard: React.FC = () => {
           onClick={() => setActiveTab('overview')}
           className={`px-5 py-3 font-bold text-sm rounded-t-2xl flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
             activeTab === 'overview'
-              ? 'bg-white dark:bg-slate-900 text-emerald-600 border-t-2 border-emerald-600 shadow-sm'
+              ? 'bg-white dark:bg-slate-900 text-[#0B63E5] border-t-2 border-[#0B63E5] shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
           }`}
         >
@@ -394,7 +420,7 @@ export const Dashboard: React.FC = () => {
           onClick={() => setActiveTab('users')}
           className={`px-5 py-3 font-bold text-sm rounded-t-2xl flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
             activeTab === 'users'
-              ? 'bg-white dark:bg-slate-900 text-emerald-600 border-t-2 border-emerald-600 shadow-sm'
+              ? 'bg-white dark:bg-slate-900 text-[#0B63E5] border-t-2 border-[#0B63E5] shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
           }`}
         >
@@ -407,7 +433,7 @@ export const Dashboard: React.FC = () => {
           onClick={() => setActiveTab('posts')}
           className={`px-5 py-3 font-bold text-sm rounded-t-2xl flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
             activeTab === 'posts'
-              ? 'bg-white dark:bg-slate-900 text-emerald-600 border-t-2 border-emerald-600 shadow-sm'
+              ? 'bg-white dark:bg-slate-900 text-[#0B63E5] border-t-2 border-[#0B63E5] shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
           }`}
         >
@@ -420,7 +446,7 @@ export const Dashboard: React.FC = () => {
           onClick={() => setActiveTab('professions')}
           className={`px-5 py-3 font-bold text-sm rounded-t-2xl flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
             activeTab === 'professions'
-              ? 'bg-white dark:bg-slate-900 text-emerald-600 border-t-2 border-emerald-600 shadow-sm'
+              ? 'bg-white dark:bg-slate-900 text-[#0B63E5] border-t-2 border-[#0B63E5] shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
           }`}
         >
@@ -433,7 +459,7 @@ export const Dashboard: React.FC = () => {
           onClick={() => setActiveTab('settings')}
           className={`px-5 py-3 font-bold text-sm rounded-t-2xl flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
             activeTab === 'settings'
-              ? 'bg-white dark:bg-slate-900 text-emerald-600 border-t-2 border-emerald-600 shadow-sm'
+              ? 'bg-white dark:bg-slate-900 text-[#0B63E5] border-t-2 border-[#0B63E5] shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
           }`}
         >
@@ -458,8 +484,8 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-2">
-              <p className="text-xs font-bold text-emerald-600 uppercase">অনুমোদিত ও সক্রিয়</p>
-              <h3 className="text-3xl font-black text-emerald-600">{approvedUsers}</h3>
+              <p className="text-xs font-bold text-[#16A34A] uppercase">অনুমোদিত ও সক্রিয়</p>
+              <h3 className="text-3xl font-black text-[#16A34A] tabular-nums">{approvedUsers}</h3>
             </div>
 
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-2">
@@ -517,7 +543,7 @@ export const Dashboard: React.FC = () => {
                             <span
                               className={`px-2.5 py-1 rounded-full font-bold text-[10px] ${
                                 p.status === 'approved'
-                                  ? 'bg-emerald-100 text-emerald-700'
+                                  ? 'bg-[#E6F7ED] text-[#15803D]'
                                   : p.status === 'pending'
                                   ? 'bg-amber-100 text-amber-700'
                                   : 'bg-red-100 text-red-700'
@@ -529,7 +555,7 @@ export const Dashboard: React.FC = () => {
                           <td className="p-3.5 text-right">
                             <Link
                               to={`/dashboard/profiles/${p.id}/edit`}
-                              className="text-emerald-600 font-bold hover:underline"
+                              className="text-[#0B63E5] font-bold hover:underline"
                             >
                               এডিট
                             </Link>
@@ -555,7 +581,7 @@ export const Dashboard: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="নাম, ইমেইল, ফোন বা আইডি দিয়ে খুঁজুন..."
+                placeholder="নাম, এলাকা, ফোন বা #আইডি দিয়ে খুঁজুন..."
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -563,15 +589,28 @@ export const Dashboard: React.FC = () => {
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
               <select
+                value={divisionFilter}
+                onChange={(e) => setDivisionFilter(e.target.value)}
+                className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold"
+              >
+                <option value="all">সকল এলাকা (বিভাগ)</option>
+                {divisions.map((dv) => (
+                  <option key={dv.id} value={dv.id}>
+                    {dv.name_bn}
+                  </option>
+                ))}
+              </select>
+
+              <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold"
               >
                 <option value="all">সকল স্ট্যাটাস</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="suspended">Suspended</option>
+                <option value="approved">Approved (প্রকাশিত)</option>
+                <option value="pending">Pending (অপেক্ষমাণ)</option>
+                <option value="suspended">Suspended (স্থগিত)</option>
+                <option value="rejected">Rejected (বাতিল)</option>
               </select>
 
               <select
@@ -600,11 +639,11 @@ export const Dashboard: React.FC = () => {
                 <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-bold uppercase">
                   <tr>
                     <th className="p-3.5 rounded-l-xl">আইডি</th>
-                    <th className="p-3.5">নাম ও ইমেইল</th>
+                    <th className="p-3.5">পেশাজীবী ও ইমেইল</th>
                     <th className="p-3.5">পেশা ও এলাকা</th>
                     <th className="p-3.5">মোবাইল</th>
-                    <th className="p-3.5">স্ট্যাটাস</th>
-                    <th className="p-3.5">ভেরিফাইড</th>
+                    <th className="p-3.5">স্ট্যাটাস কন্ট্রোল</th>
+                    <th className="p-3.5">অ্যাডমিন যাচাই</th>
                     <th className="p-3.5 rounded-r-xl text-right">অ্যাকশন</th>
                   </tr>
                 </thead>
@@ -617,43 +656,76 @@ export const Dashboard: React.FC = () => {
                       p.upazila_id,
                       p.extra_info
                     );
-                    const areaText = [loc.upazila_name, loc.district_name, loc.division_name]
-                      .filter(Boolean)
-                      .join(', ');
+                    const rawAreaParts = [loc.upazila_name, loc.district_name, loc.division_name].filter(
+                      (x): x is string => Boolean(x && x.trim())
+                    );
+                    const areaParts: string[] = [];
+                    for (const part of rawAreaParts) {
+                      if (!areaParts.includes(part.trim())) {
+                        areaParts.push(part.trim());
+                      }
+                    }
+                    const areaText = areaParts.join(', ');
+                    const paddedId = String(p.user_serial || 1).padStart(5, '0');
 
                     return (
                       <tr key={p.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
-                        <td className="p-3.5 font-mono font-bold">#{p.user_serial || 1}</td>
-                        <td className="p-3.5">
-                          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                            <span>{p.full_name}</span>
-                            {p.role === 'admin' && (
-                              <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[9px] rounded font-mono">
-                                ADMIN
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[10px] text-slate-500 font-mono">{p.email || 'ইমেইল নেই'}</div>
+                        <td className="p-3.5 font-mono font-bold tabular-nums text-[#0B63E5] dark:text-blue-400">
+                          #{paddedId}
                         </td>
                         <td className="p-3.5">
-                          <div className="font-semibold">
+                          <div className="flex items-center gap-2.5">
+                            {p.profile_photo_url ? (
+                              <img
+                                src={p.profile_photo_url}
+                                alt={p.full_name}
+                                referrerPolicy="no-referrer"
+                                className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded-full bg-[#EFF6FF] dark:bg-blue-950 text-[#0B63E5] dark:text-blue-300 font-bold flex items-center justify-center text-xs shrink-0">
+                                {(p.full_name || 'U').slice(0, 1).toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                <span>{p.full_name}</span>
+                                {p.role === 'admin' && (
+                                  <span className="px-1.5 py-0.5 bg-[#EFF6FF] dark:bg-blue-950 text-[#0B63E5] dark:text-blue-300 text-[9px] rounded font-mono">
+                                    ADMIN
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-500 font-mono">{p.email || 'ইমেইল নেই'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3.5">
+                          <div className="font-semibold text-[#0B63E5] dark:text-blue-400">
                             {profObj?.name_bn || p.extra_info?._profession_name || 'পেশাজীবী'}
                           </div>
-                          {areaText && <div className="text-[10px] text-slate-500">{areaText}</div>}
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                            {areaText ? `এলাকা: ${areaText}` : 'এলাকা যুক্ত নেই'}
+                          </div>
                         </td>
-                        <td className="p-3.5 font-mono">{p.phone}</td>
+                        <td className="p-3.5 font-mono tabular-nums">{p.phone}</td>
                         <td className="p-3.5">
-                          <span
-                            className={`px-2.5 py-1 rounded-full font-bold text-[10px] ${
+                          <select
+                            value={p.status}
+                            onChange={(e) => handleStatusChange(p.id, e.target.value as ProfileStatus)}
+                            className={`px-2.5 py-1.5 rounded-lg font-bold text-[11px] border cursor-pointer outline-none ${
                               p.status === 'approved'
-                                ? 'bg-emerald-100 text-emerald-700'
+                                ? 'bg-[#E6F7ED] dark:bg-emerald-950/60 text-[#15803D] dark:text-emerald-300 border-[#BBF7D0] dark:border-emerald-800'
                                 : p.status === 'pending'
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-red-100 text-red-700'
+                                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                : 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
                             }`}
                           >
-                            {p.status}
-                          </span>
+                            <option value="approved">Approved (প্রকাশিত)</option>
+                            <option value="pending">Pending (লুকানো)</option>
+                            <option value="suspended">Suspended (স্থগিত)</option>
+                            <option value="rejected">Rejected (বাতিল)</option>
+                          </select>
                         </td>
                         <td className="p-3.5">
                           <button
@@ -661,41 +733,21 @@ export const Dashboard: React.FC = () => {
                             onClick={() => handleToggleVerified(p.id, Boolean(p.is_verified))}
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
                               p.is_verified
-                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                ? 'bg-[#E6F7ED] dark:bg-emerald-950/80 text-[#15803D] dark:text-emerald-300 hover:bg-[#DCFCE7]'
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200'
                             }`}
-                            title="ভেরিফিকেশন পরিবর্তন করুন"
+                            title="অ্যাডমিন যাচাইকৃত ব্যাজ চালু/বন্ধ করুন"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>{p.is_verified ? 'Verified' : 'Unverified'}</span>
+                            <span>{p.is_verified ? 'যাচাইকৃত ✓' : 'অযাচাইকৃত'}</span>
                           </button>
                         </td>
                         <td className="p-3.5 text-right space-x-1.5 whitespace-nowrap">
-                          {p.status !== 'approved' && (
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange(p.id, 'approved')}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg cursor-pointer"
-                              title="অ্যাপ্রুভ করুন"
-                            >
-                              অ্যাপ্রুভ
-                            </button>
-                          )}
-                          {p.status !== 'suspended' && (
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange(p.id, 'suspended')}
-                              className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg cursor-pointer"
-                              title="সাসপেন্ড করুন"
-                            >
-                              সাসপেন্ড
-                            </button>
-                          )}
                           {(p.nid_number || p.nid_photo_url) && (
                             <button
                               type="button"
                               onClick={() => handleViewNid(p)}
-                              className="inline-block p-1.5 bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 rounded-lg text-teal-700 dark:text-teal-300 cursor-pointer"
+                              className="inline-block p-1.5 bg-[#EFF6FF] dark:bg-blue-950/60 hover:bg-[#EFF6FF] rounded-lg text-[#0B63E5] dark:text-blue-300 cursor-pointer"
                               title="NID তথ্য দেখুন"
                             >
                               <ShieldCheck className="w-3.5 h-3.5" />
@@ -710,8 +762,8 @@ export const Dashboard: React.FC = () => {
                           </Link>
                           <Link
                             to={`/dashboard/profiles/${p.id}/edit`}
-                            className="inline-block p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg text-slate-700 dark:text-slate-300"
-                            title="এডিট"
+                            className="inline-block p-1.5 bg-[#EFF6FF] dark:bg-blue-950/60 hover:bg-[#EFF6FF] rounded-lg text-[#0B63E5] dark:text-blue-300"
+                            title="সম্পূর্ণ প্রোফাইল এডিট ও কন্ট্রোল"
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </Link>
@@ -768,8 +820,8 @@ export const Dashboard: React.FC = () => {
 
             {/* Image Attachment Controls */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <label className="cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition shrink-0">
-                <ImageIcon className="w-4 h-4 text-emerald-500" />
+              <label className="cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-[#EFF6FF] dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition shrink-0">
+                <ImageIcon className="w-4 h-4 text-[#0B63E5]" />
                 <span>{adminPostImageFile ? 'ছবি পরিবর্তন করুন' : 'ছবি যুক্ত করুন'}</span>
                 <input
                   ref={adminPostFileInputRef}
@@ -825,7 +877,7 @@ export const Dashboard: React.FC = () => {
               <button
                 type="submit"
                 disabled={creatingAdminPost}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition cursor-pointer disabled:opacity-60 inline-flex items-center gap-2"
+                className="px-5 py-2.5 bg-[#0B63E5] hover:bg-[#084FC7] text-white font-bold text-xs rounded-xl transition cursor-pointer disabled:opacity-60 inline-flex items-center gap-2"
               >
                 {creatingAdminPost && (
                   <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -851,7 +903,7 @@ export const Dashboard: React.FC = () => {
                         {author && (
                           <Link
                             to={`/profile/${author.id}`}
-                            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                            className="text-xs font-bold text-[#0B63E5] dark:text-blue-400 hover:underline"
                           >
                             {author.full_name} (#{author.user_serial || 1})
                           </Link>
@@ -898,7 +950,7 @@ export const Dashboard: React.FC = () => {
                           }
                         }}
                         className={`px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer ${
-                          post.is_hidden ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-slate-950'
+                          post.is_hidden ? 'bg-[#0B63E5] text-white' : 'bg-amber-500 text-slate-950'
                         }`}
                       >
                         {post.is_hidden ? 'প্রকাশ করুন' : 'লুকিয়ে রাখুন'}
@@ -935,7 +987,7 @@ export const Dashboard: React.FC = () => {
                   <h4 className="font-bold text-slate-900 dark:text-white text-sm">{pr.name_bn}</h4>
                   <p className="text-[10px] font-mono text-slate-400">Slug: {pr.slug}</p>
                 </div>
-                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full">
+                <span className="px-2.5 py-1 bg-[#E6F7ED] text-[#15803D] text-[10px] font-bold rounded-full">
                   সক্রিয়
                 </span>
               </div>
@@ -1044,7 +1096,7 @@ export const Dashboard: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-600/20 transition cursor-pointer"
+            className="w-full py-3.5 bg-[#0B63E5] hover:bg-[#084FC7] text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/15 transition cursor-pointer"
           >
             সেটিংস সংরক্ষণ করুন
           </button>
@@ -1057,7 +1109,7 @@ export const Dashboard: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                <ShieldCheck className="w-5 h-5 text-[#0B63E5]" />
                 <span>NID ভেরিফিকেশন তথ্য</span>
               </h3>
               <button

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, RotateCcw } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Search, RotateCcw, MapPin, UserPlus } from 'lucide-react';
 import {
   fetchProfessions,
   fetchDivisions,
@@ -8,12 +8,16 @@ import {
   fetchUpazilas,
   fetchPublicProfiles,
   getSupabaseConfigError,
+  resolveLocationNames,
+  normalizeBn,
 } from '../lib/supabase';
 import type { Profession, Division, District, Upazila, PublicProfile } from '../types/database';
 import { ListingSection } from '../components/ListingSection';
+import { useAuth } from '../context/AuthContext';
 
 export const ProfessionalsListing: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { user, profile: authProfile } = useAuth();
 
   const [professions, setProfessions] = useState<Profession[]>([]);
   const [divisions, setDivisions] = useState<Division[]>([]);
@@ -164,6 +168,29 @@ export const ProfessionalsListing: React.FC = () => {
     setSearchParams(new URLSearchParams(), { replace: true });
   };
 
+  const handleFilterMyLocation = () => {
+    if (!authProfile?.division_id) return;
+    const myLoc = resolveLocationNames(
+      authProfile.division_id,
+      authProfile.district_id,
+      authProfile.upazila_id,
+      authProfile.extra_info
+    );
+    const matchedDiv =
+      divisions.find((d) => String(d.id) === String(authProfile.division_id)) ||
+      divisions.find((d) => normalizeBn(d.name_bn) === normalizeBn(myLoc.division_name));
+
+    const targetDivId = matchedDiv?.id || authProfile.division_id;
+    setDivisionId(targetDivId);
+    setDistrictId(authProfile.district_id || '');
+    setUpazilaId('');
+    updateQueryParams({
+      division_id: targetDivId || null,
+      district_id: authProfile.district_id || null,
+      upazila_id: null,
+    });
+  };
+
   const handleProfileDeleted = (deletedId: string) => {
     setProfiles((prev) => prev.filter((p) => p.id !== deletedId));
   };
@@ -171,28 +198,53 @@ export const ProfessionalsListing: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-16">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-teal-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-800">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-8 shadow-[0_2px_12px_rgba(15,41,66,0.05)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-[#E2E8F0] dark:border-slate-800">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black font-siliguri">
+          <h1 className="text-2xl sm:text-3xl font-black font-siliguri text-[#0F2942] dark:text-white">
             সকল পেশাজীবী তালিকা
           </h1>
-          <p className="text-xs text-slate-300 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             যাচাইকৃত সার্ভেয়ার, দলিল লেখক, এডভোকেট ও আইনি বিশেষজ্ঞদের সম্পূর্ণ ডিরেক্টরি
           </p>
         </div>
 
-        <div className="bg-teal-500/10 border border-teal-500/30 px-4 py-2 rounded-2xl text-xs font-bold text-teal-300 self-start sm:self-auto">
-          মোট অনুমোদিত: {profiles.length} জন
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          {authProfile?.division_id && (
+            <button
+              type="button"
+              onClick={handleFilterMyLocation}
+              className="bg-[#EFF6FF] hover:bg-[#DBEAFE] dark:bg-blue-950/60 border border-[#BFDBFE] dark:border-blue-800 px-3.5 py-2 rounded-xl text-xs font-bold text-[#0B63E5] dark:text-blue-300 flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <MapPin className="w-3.5 h-3.5 text-[#0B63E5]" />
+              <span>আমার এলাকার তালিকা</span>
+            </button>
+          )}
+          <Link
+            to={user || authProfile ? '/account' : '/login'}
+            className="bg-[#0B63E5] hover:bg-[#084FC7] px-4 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition shadow-xs"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>
+              {user || authProfile
+                ? authProfile?.phone
+                  ? 'আমার প্রোফাইল এডিট'
+                  : 'নিজের প্রোফাইল যুক্ত করুন'
+                : 'প্রোফাইল যুক্ত করতে লগইন'}
+            </span>
+          </Link>
+          <div className="bg-[#F8FAFC] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 px-3.5 py-2 rounded-xl text-xs font-bold text-[#0F2942] dark:text-slate-200 tabular-nums">
+            মোট অনুমোদিত: {profiles.length} জন
+          </div>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-[#E2E8F0] dark:border-slate-800 shadow-[0_2px_10px_rgba(15,41,66,0.04)] space-y-4">
         {/* Row 1: Cascading Location Dropdowns + Search + Sort */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Division */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">
+            <label className="block text-xs font-bold text-[#0F2942] dark:text-slate-400 mb-1 uppercase tracking-wider">
               বিভাগ
             </label>
             <select
@@ -208,7 +260,7 @@ export const ProfessionalsListing: React.FC = () => {
                   upazila_id: null,
                 });
               }}
-              className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+              className="w-full py-2.5 px-3 bg-[#F8FAFC] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-xl text-xs font-semibold text-[#0F2942] dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B63E5] cursor-pointer"
             >
               <option value="">সকল বাংলাদেশ</option>
               {divisions.map((div) => (
@@ -221,7 +273,7 @@ export const ProfessionalsListing: React.FC = () => {
 
           {/* District */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">
+            <label className="block text-xs font-bold text-[#0F2942] dark:text-slate-400 mb-1 uppercase tracking-wider">
               জেলা
             </label>
             <select
@@ -236,7 +288,7 @@ export const ProfessionalsListing: React.FC = () => {
                   upazila_id: null,
                 });
               }}
-              className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full py-2.5 px-3 bg-[#F8FAFC] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-xl text-xs font-semibold text-[#0F2942] dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B63E5] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <option value="">সকল জেলা</option>
               {districts.map((dis) => (
@@ -249,7 +301,7 @@ export const ProfessionalsListing: React.FC = () => {
 
           {/* Upazila */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">
+            <label className="block text-xs font-bold text-[#0F2942] dark:text-slate-400 mb-1 uppercase tracking-wider">
               উপজেলা
             </label>
             <select
@@ -260,7 +312,7 @@ export const ProfessionalsListing: React.FC = () => {
                 setUpazilaId(val);
                 updateQueryParams({ upazila_id: val || null });
               }}
-              className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full py-2.5 px-3 bg-[#F8FAFC] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-xl text-xs font-semibold text-[#0F2942] dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B63E5] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <option value="">সকল উপজেলা</option>
               {upazilas.map((upa) => (
@@ -273,7 +325,7 @@ export const ProfessionalsListing: React.FC = () => {
 
           {/* Search Box */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">
+            <label className="block text-xs font-bold text-[#0F2942] dark:text-slate-400 mb-1 uppercase tracking-wider">
               নাম, ফোন বা আইডি
             </label>
             <div className="relative">
@@ -286,7 +338,7 @@ export const ProfessionalsListing: React.FC = () => {
                   updateQueryParams({ search: val.trim() || null });
                 }}
                 placeholder="খুঁজুন..."
-                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full pl-9 pr-3 py-2.5 bg-[#F8FAFC] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-xl text-xs font-semibold text-[#0F2942] dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B63E5]"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
@@ -294,13 +346,13 @@ export const ProfessionalsListing: React.FC = () => {
 
           {/* Sorting Dropdown */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">
+            <label className="block text-xs font-bold text-[#0F2942] dark:text-slate-400 mb-1 uppercase tracking-wider">
               ক্রমানুসার
             </label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest')}
-              className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+              className="w-full py-2.5 px-3 bg-[#F8FAFC] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-xl text-xs font-semibold text-[#0F2942] dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B63E5] cursor-pointer"
             >
               <option value="newest">নতুন নিবন্ধিত আগে</option>
               <option value="oldest">পুরাতন আগে</option>
@@ -317,10 +369,10 @@ export const ProfessionalsListing: React.FC = () => {
                 setSelectedProfessionId('all');
                 updateQueryParams({ profession_id: null });
               }}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-colors cursor-pointer ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                 selectedProfessionId === 'all'
-                  ? 'bg-teal-800 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-[#0B63E5] text-white shadow-xs'
+                  : 'bg-[#F1F5F9] dark:bg-slate-800 text-[#334155] dark:text-slate-300 hover:bg-[#EFF6FF] hover:text-[#0B63E5] dark:hover:bg-slate-700'
               }`}
             >
               সব পেশা
@@ -336,10 +388,10 @@ export const ProfessionalsListing: React.FC = () => {
                     setSelectedProfessionId(String(prof.id));
                     updateQueryParams({ profession_id: String(prof.id) });
                   }}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-colors cursor-pointer ${
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                     isActive
-                      ? 'bg-teal-800 text-white shadow-sm'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      ? 'bg-[#0B63E5] text-white shadow-xs'
+                      : 'bg-[#F1F5F9] dark:bg-slate-800 text-[#334155] dark:text-slate-300 hover:bg-[#EFF6FF] hover:text-[#0B63E5] dark:hover:bg-slate-700'
                   }`}
                 >
                   {prof.name_bn}
@@ -351,14 +403,14 @@ export const ProfessionalsListing: React.FC = () => {
 
         {/* Reset Filter Action */}
         <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-          <span className="text-slate-500 dark:text-slate-400">
+          <span className="text-slate-500 dark:text-slate-400 tabular-nums">
             ফিল্টারকৃত পেশাজীবী সংখ্যা: {profiles.length} জন
           </span>
 
           <button
             type="button"
             onClick={handleResetFilters}
-            className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-bold hover:underline cursor-pointer"
+            className="flex items-center gap-1 text-red-600 dark:text-red-400 font-bold hover:underline cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>ফিল্টার মুছে ফেলুন</span>
