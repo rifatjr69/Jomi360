@@ -10,6 +10,8 @@ export default defineConfig(({mode}) => {
     env.VITE_SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || '';
 
   return {
+    appType: 'spa',
+    publicDir: 'public',
     plugins: [react(), tailwindcss()],
     define: {
       ...(supabaseUrl ? {'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl)} : {}),
