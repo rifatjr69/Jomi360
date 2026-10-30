@@ -40,6 +40,7 @@ import {
   normalizeBn,
   translateSupabaseError,
 } from '../lib/supabase';
+import { DEFAULT_SITE_SETTINGS } from '../lib/bangladeshLocations';
 import type { Profile, Post, Profession, Division, ProfileStatus, SiteSettings } from '../types/database';
 
 export const Dashboard: React.FC = () => {
@@ -80,18 +81,7 @@ export const Dashboard: React.FC = () => {
   const [deletingType, setDeletingType] = useState<'profile' | 'post'>('profile');
 
   // Settings form state
-  const [settingsForm, setSettingsForm] = useState<SiteSettings>({
-    site_name: 'জমি৩৬০',
-    site_name_en: 'Jomi360',
-    hero_title: '',
-    video_url: '',
-    footer_about: '',
-    owner_name: '',
-    owner_designation: '',
-    contact_email: '',
-    contact_phone: '',
-    contact_address: '',
-  });
+  const [settingsForm, setSettingsForm] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
 
   const loadData = async () => {
     setLoading(true);

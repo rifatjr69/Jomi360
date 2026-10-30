@@ -319,7 +319,12 @@ export const AdminProfileForm: React.FC = () => {
     },
     role: 'user' as const,
     status,
+    verification_status: isVerified ? ('verified' as const) : ('unverified' as const),
     is_verified: isVerified,
+    is_suspended: false,
+    avg_rating: 0,
+    review_count: 0,
+    completed_jobs_count: 0,
     created_at: new Date().toISOString(),
   };
 

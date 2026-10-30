@@ -16,6 +16,7 @@ import {
   Edit,
   ChevronRight,
   Mail,
+  Star,
 } from 'lucide-react';
 import {
   fetchPublicProfileById,
@@ -23,9 +24,12 @@ import {
   fetchSiteSettings,
   normalizeBn,
   toEnglishDigits,
+  toBanglaDigits,
 } from '../lib/supabase';
-import type { PublicProfile as PublicProfileType, Post, SiteSettings } from '../types/database';
+import { fetchReviewsForProfile } from '../lib/marketplaceService';
+import type { PublicProfile as PublicProfileType, Post, SiteSettings, Review } from '../types/database';
 import { Avatar } from '../components/Avatar';
+import { VerifiedBadge } from '../components/VerifiedBadge';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 
@@ -36,6 +40,7 @@ export const PublicProfile: React.FC = () => {
 
   const [profile, setProfile] = useState<PublicProfileType | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [, setSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,14 +52,16 @@ export const PublicProfile: React.FC = () => {
       }
       setLoading(true);
       try {
-        const [p, postList, setts] = await Promise.all([
+        const [p, postList, setts, revList] = await Promise.all([
           fetchPublicProfileById(id),
           fetchPostsForProfile(id),
           fetchSiteSettings(),
+          fetchReviewsForProfile(id),
         ]);
 
         setProfile(p);
         setPosts(Array.isArray(postList) ? postList : []);
+        setReviews(Array.isArray(revList) ? revList : []);
         setSettings(setts);
 
         if (p) {
@@ -253,20 +260,44 @@ export const PublicProfile: React.FC = () => {
 
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
             <div className="space-y-2.5 flex-1">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h1 className="text-2xl sm:text-3xl font-black text-[#0F2942] dark:text-white font-siliguri">
-                  {profile.full_name}
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-black text-[#0F2942] dark:text-white font-siliguri flex items-center gap-2">
+                  <span>{profile.full_name}</span>
+                  {(profile.verification_status === 'verified' || profile.is_verified) && (
+                    <VerifiedBadge size="lg" />
+                  )}
                 </h1>
-                {profile.is_verified && (
-                  <span className="inline-flex items-center gap-1.5 bg-[#E6F7ED] text-[#15803D] dark:bg-emerald-950/60 dark:text-emerald-400 text-xs font-bold px-3 py-1 rounded-full border border-[#BBF7D0] dark:border-emerald-800">
+                {(profile.verification_status === 'verified' || profile.is_verified) && (
+                  <span className="inline-flex items-center gap-1.5 bg-[#EFF6FF] text-[var(--brand-primary)] dark:bg-blue-950/60 dark:text-blue-300 text-xs font-bold px-3 py-1 rounded-full border border-[#BFDBFE] dark:border-blue-800">
                     <ShieldCheck className="w-4 h-4" />
-                    সত্যায়িত
+                    <span>ভেরিফাইড</span>
                   </span>
                 )}
               </div>
 
+              {(profile.review_count > 0 || profile.completed_jobs_count > 0) && (
+                <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300">
+                  {profile.review_count > 0 && (
+                    <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold tabular-nums">
+                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      <span>
+                        {toBanglaDigits(Number(profile.avg_rating || 0).toFixed(1))} ({toBanglaDigits(profile.review_count)}টি রিভিউ)
+                      </span>
+                    </span>
+                  )}
+                  {profile.review_count > 0 && profile.completed_jobs_count > 0 && (
+                    <span aria-hidden="true">·</span>
+                  )}
+                  {profile.completed_jobs_count > 0 && (
+                    <span className="tabular-nums">
+                      সম্পন্ন কাজ: {toBanglaDigits(profile.completed_jobs_count)}টি
+                    </span>
+                  )}
+                </div>
+              )}
+
               <p className="text-sm font-medium text-[#334155] dark:text-slate-300 flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-[#0B63E5] dark:text-blue-400 shrink-0" />
+                <MapPin className="w-4 h-4 text-[var(--brand-primary)] dark:text-blue-400 shrink-0" />
                 <span>{fullAddressDisplay}</span>
               </p>
 
@@ -674,6 +705,71 @@ export const PublicProfile: React.FC = () => {
                           className="w-full h-full object-cover"
                         />
                       </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Reviews & Ratings Card */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-[#E2E8F0] dark:border-slate-800 shadow-[0_2px_10px_rgba(15,41,66,0.04)]">
+            <h3 className="font-bold text-lg text-[#0F2942] dark:text-slate-100 border-b border-[#E5EAF2] dark:border-slate-800 pb-4 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                <span>ক্লায়েন্ট ও মার্কেটপ্লেস রিভিউ</span>
+              </span>
+              <span className="text-xs text-slate-500 font-normal tabular-nums">
+                ({toBanglaDigits(reviews.length)}টি রিভিউ)
+              </span>
+            </h3>
+
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 mt-4">
+              {reviews.length === 0 ? (
+                <div className="py-8 text-center text-slate-500 text-sm">
+                  এখনো কোনো রিভিউ জমা পড়েনি।
+                </div>
+              ) : (
+                reviews.map((rev) => (
+                  <div key={rev.id} className="py-4 first:pt-2 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar
+                          src={rev.reviewer?.profile_photo_url}
+                          name={rev.reviewer?.full_name || 'ব্যবহারকারী'}
+                          size="sm"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1 text-sm font-bold text-[#0F2942] dark:text-slate-100">
+                            <span>{rev.reviewer?.full_name || 'ব্যবহারকারী'}</span>
+                            {(rev.reviewer?.verification_status === 'verified' || rev.reviewer?.is_verified) && (
+                              <VerifiedBadge size="sm" />
+                            )}
+                          </div>
+                          <span className="text-[11px] text-slate-400">
+                            {new Date(rev.created_at).toLocaleDateString('bn-BD', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-0.5 text-amber-400">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`w-4 h-4 ${
+                              s <= rev.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-700'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {rev.comment && (
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {rev.comment}
+                      </p>
                     )}
                   </div>
                 ))

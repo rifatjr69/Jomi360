@@ -7,6 +7,7 @@ import type {
   Profile,
   PublicProfile,
   ProfileStatus,
+  VerificationStatus,
   Post,
   SiteSettings,
 } from '../types/database';
@@ -124,8 +125,20 @@ export function translateSupabaseError(err: any, fallbackMessage = 'সার্
   if (lower.includes('image_url') && (lower.includes('column') || lower.includes('schema cache'))) {
     return 'ডাটাবেসের posts টেবিলে image_url কলামটি নেই। অনুগ্রহ করে প্রদত্ত SQL কোডটি Supabase SQL Editor-এ রান করুন।';
   }
+  if (lower.includes('infinite recursion') || err?.code === '42P17' || lower.includes('42p17')) {
+    return 'ডাটাবেসের jobs টেবিলের পুরনো RLS পলিসিতে লুপ (42P17) রয়েছে। অনুগ্রহ করে প্রদত্ত ফিক্স SQL কোডটি Supabase SQL Editor-এ একবার Run করুন।';
+  }
+  if (err?.code === '42P01' || err?.code === 'PGRST205' || lower.includes('does not exist')) {
+    return 'ডাটাবেসে প্রয়োজনীয় টেবিল বা কলাম পাওয়া যায়নি। অনুগ্রহ করে প্রদত্ত SQL কোডটি Supabase SQL Editor-এ রান করুন।';
+  }
+  if (err?.code === '23503' || lower.includes('foreign key constraint')) {
+    return 'প্রোফাইল বা লোকেশন তথ্যের সাথে ডাটাবেস রেফারেন্স মেলেনি। অনুগ্রহ করে পেজটি রিলোড করে আবার চেষ্টা করুন।';
+  }
+  if (err?.code === '22P02' || lower.includes('invalid input syntax')) {
+    return 'প্রদত্ত তথ্যের ফরম্যাট সঠিক নয়। অনুগ্রহ করে সকল ঘর সঠিকভাবে পূরণ করুন।';
+  }
   if (lower.includes('row-level security') || lower.includes('permission denied') || err?.code === '42501') {
-    return 'ডাটাবেস পারমিশন (RLS Policy) সংক্রান্ত সমস্যা। অনুগ্রহ করে প্রদত্ত RLS SQL কোডটি Supabase SQL Editor-এ রান করুন।';
+    return 'ডাটাবেস পারমিশন (RLS Policy) সংক্রান্ত সমস্যা। অনুগ্রহ করে প্রদত্ত ফিক্স SQL কোডটি Supabase SQL Editor-এ রান করুন।';
   }
   if (lower.includes('failed to fetch') || lower.includes('networkerror') || lower.includes('fetch')) {
     return 'ডাটাবেস সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি। ইন্টারনেট সংযোগ অথবা Supabase URL/Anon Key যাচাই করুন।';
@@ -186,7 +199,7 @@ const lookupCache: CachedLookup = {
 
 let lookupInitPromise: Promise<void> | null = null;
 
-async function ensureLookupsLoaded(): Promise<void> {
+export async function ensureLookupsLoaded(): Promise<void> {
   if (!isSupabaseConfigured || !supabase) return;
   if (
     lookupCache.loadedFromDb.divisions &&
@@ -467,7 +480,7 @@ export function resolveProfessionName(
   return profObj?.name_bn || extraInfo?._profession_name || extraInfo?.profession_name || 'অন্যান্য';
 }
 
-function toDbForeignKey(
+export function toDbForeignKey(
   val: any,
   kind: 'division' | 'district' | 'upazila' | 'profession'
 ): string | number | null {
@@ -524,16 +537,33 @@ function toDbForeignKey(
         return lookupCache.rawProfessionIds.get(dbMatch.id)!;
       }
     }
-    // If 'prof-6' (অন্যান্য) is not in professions table yet, return null so FK doesn't fail
     if (s.startsWith('prof-')) return null;
+  }
+
+  if (
+    s.startsWith('div-') ||
+    s.startsWith('dis-') ||
+    s.startsWith('upa-') ||
+    s.startsWith('prof-')
+  ) {
+    return null;
   }
 
   if (/^\d+$/.test(s)) return Number(s);
   return s;
 }
 
-function normalizeProfileRow(raw: any): Profile {
+export function normalizeProfileRow(raw: any): Profile {
   const extra = raw?.extra_info && typeof raw.extra_info === 'object' ? raw.extra_info : {};
+  const validVerStatuses: VerificationStatus[] = ['unverified', 'pending', 'verified', 'rejected'];
+  const verStatus: VerificationStatus = validVerStatuses.includes(raw.verification_status)
+    ? raw.verification_status
+    : raw.is_verified
+    ? 'verified'
+    : 'unverified';
+  const isVerified = verStatus === 'verified';
+  const isSuspended = Boolean(raw.is_suspended) || raw.status === 'suspended';
+
   return {
     id: String(raw.id),
     auth_user_id: raw.auth_user_id ? String(raw.auth_user_id) : null,
@@ -556,17 +586,29 @@ function normalizeProfileRow(raw: any): Profile {
     status: (['pending', 'approved', 'rejected', 'suspended'].includes(raw.status)
       ? raw.status
       : 'approved') as ProfileStatus,
-    is_verified: Boolean(raw.is_verified),
+    is_verified: isVerified,
+    verification_status: verStatus,
+    verification_rejection_reason: raw.verification_rejection_reason ?? null,
+    is_suspended: isSuspended,
+    avg_rating: Number(raw.avg_rating || 0),
+    review_count: Number(raw.review_count || 0),
+    completed_jobs_count: Number(raw.completed_jobs_count || 0),
     created_at: raw.created_at || new Date().toISOString(),
+    updated_at: raw.updated_at || raw.created_at || new Date().toISOString(),
   };
 }
 
-function enrichProfileToPublic(raw: any): PublicProfile {
+export function enrichProfileToPublic(raw: any): PublicProfile {
   const base = normalizeProfileRow(raw);
   const loc = resolveLocationNames(base.division_id, base.district_id, base.upazila_id, base.extra_info);
   const profName =
     (raw.profession_name ? normalizeBn(raw.profession_name) : '') ||
     resolveProfessionName(base.profession_id, base.extra_info);
+
+  // Strip any sensitive keys from extra_info before exposing as PublicProfile
+  const safeExtra = { ...(base.extra_info || {}) };
+  delete (safeExtra as any).nid_number;
+  delete (safeExtra as any).nid_photo_url;
 
   return {
     id: base.id,
@@ -587,17 +629,106 @@ function enrichProfileToPublic(raw: any): PublicProfile {
     profile_photo_url: base.profile_photo_url,
     cover_photo_url: base.cover_photo_url,
     bio: base.bio,
-    extra_info: base.extra_info,
+    extra_info: safeExtra,
     role: base.role,
     status: base.status,
     is_verified: base.is_verified,
+    verification_status: base.verification_status,
+    is_suspended: base.is_suspended,
+    avg_rating: base.avg_rating,
+    review_count: base.review_count,
+    completed_jobs_count: base.completed_jobs_count,
     created_at: base.created_at,
   };
 }
 
 // ============================================================================
-// 5. SITE SETTINGS
+// 5. SITE SETTINGS (Single-Row + Legacy Key-Value Fallback + Prompt Bug Sanitizer)
 // ============================================================================
+function hasLeftoverInstructionBug(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes('jog korar') ||
+    lower.includes('button din') ||
+    lower.includes('logo jog') ||
+    lower.includes('banner jog') ||
+    text.includes('যোগ করার বাটন') ||
+    text.includes('লোগো যোগ করার') ||
+    text.includes('ব্যানার যোগ করার')
+  );
+}
+
+function parseBoolSetting(val: any, defaultVal: boolean): boolean {
+  if (typeof val === 'boolean') return val;
+  if (val === 'true' || val === '1' || val === 1) return true;
+  if (val === 'false' || val === '0' || val === 0) return false;
+  return defaultVal;
+}
+
+export function sanitizeSiteSettings(raw: Record<string, any> | null | undefined): SiteSettings {
+  const merged: Record<string, any> = {
+    ...DEFAULT_SITE_SETTINGS,
+    ...(raw || {}),
+  };
+
+  const cleanSiteName = String(merged.site_name || '').trim();
+  const cleanHeroTitle = String(merged.hero_title || '').trim();
+  const cleanHeroSub = String(merged.hero_subtitle || '').trim();
+  const cleanTagline = String(merged.tagline || '').trim();
+
+  return {
+    id: 1,
+    site_name:
+      !cleanSiteName || cleanSiteName.length > 40 || hasLeftoverInstructionBug(cleanSiteName)
+        ? DEFAULT_SITE_SETTINGS.site_name
+        : cleanSiteName,
+    site_name_en: String(merged.site_name_en || DEFAULT_SITE_SETTINGS.site_name_en).trim(),
+    tagline:
+      !cleanTagline || hasLeftoverInstructionBug(cleanTagline)
+        ? DEFAULT_SITE_SETTINGS.tagline
+        : cleanTagline,
+    hero_title:
+      !cleanHeroTitle || hasLeftoverInstructionBug(cleanHeroTitle)
+        ? DEFAULT_SITE_SETTINGS.hero_title
+        : cleanHeroTitle,
+    hero_subtitle:
+      !cleanHeroSub || hasLeftoverInstructionBug(cleanHeroSub)
+        ? DEFAULT_SITE_SETTINGS.hero_subtitle
+        : cleanHeroSub,
+    logo_url: String(merged.logo_url || '').trim(),
+    favicon_url: String(merged.favicon_url || '').trim(),
+    primary_color: /^#[0-9A-Fa-f]{6}$/.test(String(merged.primary_color || '').trim())
+      ? String(merged.primary_color).trim()
+      : DEFAULT_SITE_SETTINGS.primary_color,
+    accent_color: /^#[0-9A-Fa-f]{6}$/.test(String(merged.accent_color || '').trim())
+      ? String(merged.accent_color).trim()
+      : DEFAULT_SITE_SETTINGS.accent_color,
+    default_theme: merged.default_theme === 'dark' ? 'dark' : 'light',
+    video_url: String(merged.video_url || '').trim(),
+    footer_about: String(merged.footer_about || DEFAULT_SITE_SETTINGS.footer_about).trim(),
+    support_whatsapp: String(merged.support_whatsapp || merged.contact_phone || DEFAULT_SITE_SETTINGS.support_whatsapp).trim(),
+    owner_name: String(merged.owner_name || '').trim(),
+    owner_designation: String(merged.owner_designation || '').trim(),
+    contact_email: String(merged.contact_email || DEFAULT_SITE_SETTINGS.contact_email).trim(),
+    contact_phone: String(merged.contact_phone || DEFAULT_SITE_SETTINGS.contact_phone).trim(),
+    contact_address: String(merged.contact_address || DEFAULT_SITE_SETTINGS.contact_address).trim(),
+    require_job_approval: parseBoolSetting(merged.require_job_approval, DEFAULT_SITE_SETTINGS.require_job_approval),
+    require_application_approval: parseBoolSetting(
+      merged.require_application_approval,
+      DEFAULT_SITE_SETTINGS.require_application_approval
+    ),
+    require_verified_to_post_job: parseBoolSetting(
+      merged.require_verified_to_post_job,
+      DEFAULT_SITE_SETTINGS.require_verified_to_post_job
+    ),
+    require_verified_to_apply_job: parseBoolSetting(
+      merged.require_verified_to_apply_job,
+      DEFAULT_SITE_SETTINGS.require_verified_to_apply_job
+    ),
+  };
+}
+
 export async function fetchSiteSettings(): Promise<SiteSettings> {
   if (!isSupabaseConfigured || !supabase) {
     return DEFAULT_SITE_SETTINGS;
@@ -612,21 +743,17 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
       return DEFAULT_SITE_SETTINGS;
     }
 
-    // Support both key-value rows (key, value) and single-row object
     if ('key' in data[0] && 'value' in data[0]) {
-      const merged: Record<string, any> = { ...DEFAULT_SITE_SETTINGS };
+      const kvObj: Record<string, any> = {};
       data.forEach((row: any) => {
         if (row.key && row.value !== undefined && row.value !== null) {
-          merged[row.key] = String(row.value);
+          kvObj[row.key] = row.value;
         }
       });
-      return merged as SiteSettings;
+      return sanitizeSiteSettings(kvObj);
     }
 
-    return {
-      ...DEFAULT_SITE_SETTINGS,
-      ...data[0],
-    };
+    return sanitizeSiteSettings(data[0]);
   } catch (err) {
     console.error('[Supabase] fetchSiteSettings exception:', err);
     return DEFAULT_SITE_SETTINGS;
@@ -636,15 +763,26 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
 export async function updateSiteSettingsInDb(settings: Partial<SiteSettings>): Promise<SiteSettings> {
   const client = requireSupabase();
   try {
-    const rows = Object.entries(settings).map(([key, value]) => ({
-      key,
-      value: String(value ?? ''),
-    }));
+    const payload: Record<string, any> = {
+      id: 1,
+      ...settings,
+      updated_at: new Date().toISOString(),
+    };
 
-    const { error } = await client.from('site_settings').upsert(rows, { onConflict: 'key' });
+    const { error } = await client.from('site_settings').upsert(payload, { onConflict: 'id' });
     if (error) {
-      console.error('[Supabase] updateSiteSettingsInDb error:', error);
-      throw new Error(translateSupabaseError(error, 'সাইট সেটিংস সংরক্ষণ ব্যর্থ হয়েছে।'));
+      console.error('[Supabase] updateSiteSettingsInDb single-row upsert error, trying legacy kv fallback:', error);
+      const rows = Object.entries(settings)
+        .filter(([k]) => k !== 'id')
+        .map(([key, value]) => ({
+          key,
+          value: String(value ?? ''),
+        }));
+      const { error: kvError } = await client.from('site_settings').upsert(rows, { onConflict: 'key' });
+      if (kvError) {
+        console.error('[Supabase] updateSiteSettingsInDb legacy kv fallback error:', kvError);
+        throw new Error(translateSupabaseError(error, 'সাইট সেটিংস সংরক্ষণ ব্যর্থ হয়েছে।'));
+      }
     }
     return fetchSiteSettings();
   } catch (err: any) {
@@ -654,7 +792,7 @@ export async function updateSiteSettingsInDb(settings: Partial<SiteSettings>): P
 }
 
 // ============================================================================
-// 6. IMAGE UPLOAD & COMPRESSION HELPER
+// 6. IMAGE & DOCUMENT UPLOAD HELPERS
 // ============================================================================
 async function compressImageToDataUrl(file: File, maxDim = 600, quality = 0.78): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -693,7 +831,7 @@ async function compressImageToDataUrl(file: File, maxDim = 600, quality = 0.78):
 
 export async function uploadProfileMedia(
   file: File,
-  bucket: 'avatars' | 'post-images' | 'nid-docs',
+  bucket: 'avatars' | 'post-images' | 'nid-docs' | 'site-assets' | 'banners' | 'job-attachments',
   folder: string
 ): Promise<string> {
   if (isSupabaseConfigured && supabase) {
@@ -706,7 +844,15 @@ export async function uploadProfileMedia(
       });
 
       if (error) {
-        console.error(`[Supabase Storage] upload to ${bucket} failed, falling back to compressed image:`, error);
+        console.error(`[Supabase Storage] upload to ${bucket} failed:`, error);
+        if (!file.type.startsWith('image/')) {
+          throw new Error(
+            translateSupabaseError(
+              error,
+              'ফাইল আপলোড করা যায়নি। অনুগ্রহ করে ছবি আপলোড করুন অথবা স্টোরেজ পলিসি যাচাই করুন।'
+            )
+          );
+        }
       } else {
         if (bucket === 'nid-docs') {
           return path;
@@ -714,12 +860,67 @@ export async function uploadProfileMedia(
         const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
         if (pub?.publicUrl) return pub.publicUrl;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(`[Supabase Storage] upload exception on ${bucket}:`, err);
+      if (!file.type.startsWith('image/')) {
+        throw err;
+      }
     }
   }
 
-  return compressImageToDataUrl(file, bucket === 'avatars' ? 480 : 900, 0.8);
+  return compressImageToDataUrl(file, bucket === 'avatars' ? 480 : 1200, 0.82);
+}
+
+export async function uploadPrivateVerificationDoc(
+  file: File,
+  userId: string,
+  docKind: 'front' | 'back' | 'selfie'
+): Promise<string> {
+  const client = requireSupabase();
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const path = `${userId}/${docKind}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
+
+  const { error } = await client.storage.from('verification-docs').upload(path, file, {
+    cacheControl: '3600',
+    upsert: true,
+  });
+
+  if (error) {
+    console.error('[Supabase Storage] uploadPrivateVerificationDoc error:', error);
+    throw new Error(
+      translateSupabaseError(
+        error,
+        'ভেরিফিকেশন ডকুমেন্ট আপলোড করা যায়নি। Supabase-এ verification-docs প্রাইভেট বাকেট ও RLS SQL রান করা আছে কিনা যাচাই করুন।'
+      )
+    );
+  }
+
+  return path;
+}
+
+export async function getVerificationDocSignedUrl(pathOrUrl: string): Promise<string | null> {
+  if (!pathOrUrl) return null;
+  if (pathOrUrl.startsWith('http') || pathOrUrl.startsWith('data:')) {
+    return pathOrUrl;
+  }
+  const client = requireSupabase();
+  try {
+    const { data, error } = await client.storage.from('verification-docs').createSignedUrl(pathOrUrl, 300);
+    if (!error && data?.signedUrl) {
+      return data.signedUrl;
+    }
+    const { data: legacyData, error: legacyErr } = await client.storage
+      .from('nid-docs')
+      .createSignedUrl(pathOrUrl, 300);
+    if (legacyErr) {
+      console.error('[Supabase] getVerificationDocSignedUrl error:', error || legacyErr);
+      return null;
+    }
+    return legacyData?.signedUrl || null;
+  } catch (err) {
+    console.error('[Supabase] getVerificationDocSignedUrl exception:', err);
+    return null;
+  }
 }
 
 export async function uploadPostImage(file: File, profileId: string): Promise<string | null> {
@@ -727,22 +928,7 @@ export async function uploadPostImage(file: File, profileId: string): Promise<st
 }
 
 export async function adminGetSignedNidUrl(nidPathOrUrl: string): Promise<string | null> {
-  if (!nidPathOrUrl) return null;
-  if (nidPathOrUrl.startsWith('http') || nidPathOrUrl.startsWith('data:')) {
-    return nidPathOrUrl;
-  }
-  const client = requireSupabase();
-  try {
-    const { data, error } = await client.storage.from('nid-docs').createSignedUrl(nidPathOrUrl, 60);
-    if (error) {
-      console.error('[Supabase] adminGetSignedNidUrl error:', error);
-      return null;
-    }
-    return data?.signedUrl || null;
-  } catch (err) {
-    console.error('[Supabase] adminGetSignedNidUrl exception:', err);
-    return null;
-  }
+  return getVerificationDocSignedUrl(nidPathOrUrl);
 }
 
 // ============================================================================
@@ -814,7 +1000,8 @@ export async function fetchPublicProfiles(filters: PublicProfileFilters = {}): P
     let query = supabase
       .from('profiles')
       .select('*')
-      .eq('status', 'approved');
+      .eq('is_verified', true)
+      .neq('status', 'suspended');
 
     // Combined SQL filters where database foreign key IDs exist
     const dbProfId =
@@ -890,7 +1077,9 @@ export async function fetchPublicProfiles(filters: PublicProfileFilters = {}): P
       rows = data || [];
     }
 
-    let list = rows.map(enrichProfileToPublic);
+    let list = rows
+      .map(enrichProfileToPublic)
+      .filter((p) => (p.verification_status === 'verified' || p.is_verified) && !p.is_suspended);
 
     // Ensure exact matching for fallback/custom professions, fallback upazilas, and license/Bangla digits
     if (filters.profession_id && filters.profession_id !== 'all') {
@@ -1052,6 +1241,15 @@ function buildProfileDbPayload(input: Record<string, any>): Record<string, any> 
   if (input.is_verified !== undefined) {
     payload.is_verified = Boolean(input.is_verified);
   }
+  if (input.verification_status !== undefined) {
+    payload.verification_status = input.verification_status;
+  }
+  if (input.verification_rejection_reason !== undefined) {
+    payload.verification_rejection_reason = input.verification_rejection_reason;
+  }
+  if (input.is_suspended !== undefined) {
+    payload.is_suspended = Boolean(input.is_suspended);
+  }
 
   return payload;
 }
@@ -1160,50 +1358,25 @@ export async function syncAuthenticatedUserProfile(authUser: User): Promise<Prof
       return normalizeProfileRow(existingRow);
     }
 
-    // 4. No profile row exists yet -> if complete pending registration data exists, upsert immediately;
-    //    otherwise return null cleanly so /account opens in "Create Your Professional Profile" mode!
+    // 4. No profile row exists yet -> auto-create minimal unverified profile row so every user starts as 'unverified'
     const meta = authUser.user_metadata || {};
-    const hasCompletePending = Boolean(
-      (pendingData?.phone || meta.phone) &&
-      (pendingData?.division_id || meta.division_id) &&
-      (pendingData?.district_id || meta.district_id)
-    );
-
-    if (!hasCompletePending) {
-      return null;
-    }
-
-    const defaultProfId = lookupCache.professions[0]?.id;
-    const defaultDivId = lookupCache.divisions[0]?.id;
-    const defaultDisId = lookupCache.districts[0]?.id;
-    const defaultUpaId = lookupCache.upazilas[0]?.id;
-
-    const newProfilePayload = buildProfileDbPayload({
+    const minimalPayload: Record<string, any> = {
       id: authUser.id,
       auth_user_id: authUser.id,
       email: authEmail,
-      full_name: pendingData?.full_name || meta.full_name || (authEmail ? authEmail.split('@')[0] : 'পেশাজীবী'),
+      full_name:
+        pendingData?.full_name ||
+        meta.full_name ||
+        (authEmail ? authEmail.split('@')[0] : 'ব্যবহারকারী'),
       phone: pendingData?.phone || meta.phone || '',
-      profession_id: pendingData?.profession_id ?? meta.profession_id ?? defaultProfId,
-      division_id: pendingData?.division_id ?? meta.division_id ?? defaultDivId,
-      district_id: pendingData?.district_id ?? meta.district_id ?? defaultDisId,
-      upazila_id: pendingData?.upazila_id ?? meta.upazila_id ?? defaultUpaId,
-      address_detail: pendingData?.address_detail ?? meta.address_detail ?? null,
-      nid_number: pendingData?.nid_number ?? meta.nid_number ?? null,
-      nid_photo_url: pendingData?.nid_photo_url ?? null,
-      profile_photo_url: pendingData?.profile_photo_url ?? null,
-      bio: pendingData?.bio ?? null,
-      extra_info: pendingData?.extra_info ?? meta.extra_info ?? {},
-      role: 'user',
-      status: 'approved',
-      is_verified: false,
-    });
+      extra_info: pendingData?.extra_info || {},
+    };
 
     const { data: insertedRow, error: insertError } = await client
       .from('profiles')
-      .upsert(newProfilePayload, { onConflict: 'id' })
+      .upsert(minimalPayload, { onConflict: 'id' })
       .select('*')
-      .single();
+      .maybeSingle();
 
     if (insertError) {
       console.error('[Supabase] syncAuthenticatedUserProfile auto-insert error:', insertError);
@@ -1211,10 +1384,65 @@ export async function syncAuthenticatedUserProfile(authUser: User): Promise<Prof
     }
 
     if (pendingStorageKey) localStorage.removeItem(pendingStorageKey);
-    return normalizeProfileRow(insertedRow);
+    return insertedRow ? normalizeProfileRow(insertedRow) : null;
   } catch (err) {
     console.error('[Supabase] syncAuthenticatedUserProfile exception:', err);
     return null;
+  }
+}
+
+export async function signUpSimpleUser(params: {
+  email: string;
+  password: string;
+  full_name?: string;
+}): Promise<{
+  profile: Profile | null;
+  auth_user_id: string;
+  requiresEmailConfirmation: boolean;
+}> {
+  const client = requireSupabase();
+  const cleanEmail = params.email.trim().toLowerCase();
+  const cleanName = (params.full_name || '').trim() || cleanEmail.split('@')[0] || 'ব্যবহারকারী';
+
+  try {
+    const { data: authData, error: authError } = await client.auth.signUp({
+      email: cleanEmail,
+      password: params.password,
+      options: {
+        data: {
+          full_name: cleanName,
+          email: cleanEmail,
+        },
+      },
+    });
+
+    if (authError) {
+      console.error('[Supabase] signUpSimpleUser error:', authError);
+      throw new Error(translateSupabaseError(authError, 'অ্যাকাউন্ট তৈরি করা যায়নি।'));
+    }
+
+    const authUser = authData.user;
+    if (!authUser) {
+      throw new Error('অ্যাকাউন্ট তৈরি করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+    }
+
+    if (Array.isArray(authUser.identities) && authUser.identities.length === 0) {
+      throw new Error('এই ই-মেইল ঠিকানা দিয়ে ইতিমধ্যে অ্যাকাউন্ট খোলা হয়েছে। অনুগ্রহ করে লগইন করুন।');
+    }
+
+    let syncedProfile: Profile | null = null;
+    if (authData.session) {
+      syncedProfile = await syncAuthenticatedUserProfile(authUser);
+    }
+
+    return {
+      profile: syncedProfile,
+      auth_user_id: authUser.id,
+      requiresEmailConfirmation: !authData.session,
+    };
+  } catch (err: any) {
+    console.error('[Supabase] signUpSimpleUser exception:', err);
+    throw new Error(translateSupabaseError(err, 'রেজিস্ট্রেশন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।'));
   }
 }
 
@@ -1574,9 +1802,14 @@ export async function adminUpdateProfileStatus(id: string, status: ProfileStatus
 export async function adminToggleVerified(id: string, is_verified: boolean): Promise<Profile> {
   const client = requireSupabase();
   try {
+    const verification_status: VerificationStatus = is_verified ? 'verified' : 'unverified';
     const { data, error } = await client
       .from('profiles')
-      .update({ is_verified })
+      .update({
+        is_verified,
+        verification_status,
+        ...(is_verified ? { verification_rejection_reason: null, status: 'approved' } : {}),
+      })
       .eq('id', id)
       .select('*')
       .single();

@@ -20,7 +20,7 @@ export const Login: React.FC = () => {
   useEffect(() => {
     if (user || profile) {
       if (isAdmin || profile?.role === 'admin') {
-        navigate('/dashboard', { replace: true });
+        navigate('/admin', { replace: true });
       } else {
         navigate('/account', { replace: true });
       }
@@ -44,7 +44,7 @@ export const Login: React.FC = () => {
 
       if (latestProfile?.role === 'admin') {
         showToast('অ্যাডমিন হিসেবে সফলভাবে লগইন হয়েছে!', 'success');
-        navigate('/dashboard', { replace: true });
+        navigate('/admin', { replace: true });
       } else {
         showToast('সফলভাবে লগইন হয়েছে!', 'success');
         navigate('/account', { replace: true });

@@ -41,6 +41,7 @@ import type { Profession, Post, PublicProfile } from '../types/database';
 import { AddressPickerModal, SelectedLocation } from '../components/AddressPickerModal';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProfileCard } from '../components/ProfileCard';
+import { VerifiedBadge } from '../components/VerifiedBadge';
 
 const QUICK_SERVICE_TAGS = [
   '👉 ডিজিটাল সার্ভে',
@@ -245,8 +246,6 @@ export const Account: React.FC = () => {
         email: finalEmail || null,
         full_name: fullName.trim(),
         phone: cleanPhone,
-        nid_number: nidNumber.trim() ? toEnglishDigits(nidNumber.trim()) : null,
-        nid_photo_url: nidPhotoUrl || null,
         profession_id: professionId || professions[0]?.id,
         division_id: selectedLocation.division_id,
         district_id: selectedLocation.district_id,
@@ -262,13 +261,16 @@ export const Account: React.FC = () => {
         await saveUserOwnProfile(user, updateData, profile?.id);
       }
       const updated = await refreshProfile();
-      if (updated?.status === 'approved') {
+      if (updated?.verification_status === 'verified' || updated?.is_verified) {
         showToast(
           'প্রোফাইল সংরক্ষিত হয়েছে! আপনার নির্বাচিত এলাকা অনুযায়ী হোম পেজ ও পেশাজীবী তালিকায় প্রদর্শিত হচ্ছে।',
           'success'
         );
       } else {
-        showToast('প্রোফাইল তথ্য সফলভাবে ডাটাবেসে সংরক্ষিত হয়েছে!', 'success');
+        showToast(
+          'প্রোফাইল তথ্য সংরক্ষিত হয়েছে! পাবলিক ডিরেক্টরিতে যুক্ত হতে প্রোফাইল ভেরিফিকেশন সম্পন্ন করুন।',
+          'success'
+        );
       }
     } catch (err: any) {
       console.error('[Account] handleSaveProfile error:', err);
@@ -472,7 +474,13 @@ export const Account: React.FC = () => {
     },
     role: profile?.role || 'user',
     status: profile?.status || 'approved',
-    is_verified: Boolean(profile?.is_verified),
+    verification_status:
+      profile?.verification_status || (profile?.is_verified ? 'verified' : 'unverified'),
+    is_verified: Boolean(profile?.is_verified || profile?.verification_status === 'verified'),
+    is_suspended: Boolean(profile?.is_suspended),
+    avg_rating: profile?.avg_rating || 0,
+    review_count: profile?.review_count || 0,
+    completed_jobs_count: profile?.completed_jobs_count || 0,
     created_at: profile?.created_at || new Date().toISOString(),
   };
 
@@ -540,14 +548,8 @@ export const Account: React.FC = () => {
               <h1 className="text-2xl font-black text-slate-900 dark:text-white font-siliguri">
                 {fullName || 'নতুন পেশাজীবী প্রোফাইল'}
               </h1>
-              {profile?.is_verified && (
-                <span
-                  className="inline-flex items-center gap-1 text-xs font-bold text-[#15803D] dark:text-emerald-400"
-                  title="অ্যাডমিন যাচাইকৃত প্রোফাইল"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>অ্যাডমিন যাচাইকৃত</span>
-                </span>
+              {(profile?.is_verified || profile?.verification_status === 'verified') && (
+                <VerifiedBadge size="md" showLabel />
               )}
             </div>
             <p className="text-xs text-[#0B63E5] dark:text-blue-400 font-bold">
@@ -560,34 +562,37 @@ export const Account: React.FC = () => {
               </p>
             )}
 
-            {/* Status Badge */}
+            {/* Verification Status Badge */}
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              {!profile ? (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#EFF6FF] dark:bg-blue-950/60 text-[#0B63E5] dark:text-blue-300 rounded-full text-xs font-bold border border-[#BFDBFE] dark:border-[#0B63E5]">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  প্রোফাইল তৈরি করুন
+              {profile?.verification_status === 'verified' || profile?.is_verified ? (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 dark:bg-blue-950/60 text-[#0B63E5] dark:text-blue-300 rounded-lg text-xs font-bold border border-blue-200 dark:border-blue-800">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  ভেরিফাইড ও পাবলিক ডিরেক্টরিতে প্রকাশিত
                 </span>
+              ) : profile?.verification_status === 'pending' ? (
+                <Link
+                  to="/verify"
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 rounded-lg text-xs font-bold border border-amber-200 dark:border-amber-800"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  ভেরিফিকেশন যাচাইাধীন (Pending)
+                </Link>
+              ) : profile?.verification_status === 'rejected' ? (
+                <Link
+                  to="/verify"
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 rounded-lg text-xs font-bold border border-rose-200 dark:border-rose-800"
+                >
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  ভেরিফিকেশন প্রত্যাখ্যাত — পুনরায় আবেদন করুন
+                </Link>
               ) : (
-                <>
-                  {profile.status === 'approved' && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#E6F7ED] dark:bg-emerald-950/60 text-[#15803D] dark:text-emerald-300 rounded-full text-xs font-bold border border-[#BBF7D0] dark:border-emerald-800">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      ডিরেক্টরিতে প্রকাশিত ও সক্রিয়
-                    </span>
-                  )}
-                  {profile.status === 'pending' && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 rounded-full text-xs font-bold border border-amber-200 dark:border-amber-800">
-                      <Clock className="w-3.5 h-3.5" />
-                      অনুমোদনের অপেক্ষায় (Pending)
-                    </span>
-                  )}
-                  {['rejected', 'suspended'].includes(profile.status) && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 rounded-full text-xs font-bold border border-red-200 dark:border-red-800">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      অ্যাডমিন কর্তৃক স্থগিত
-                    </span>
-                  )}
-                </>
+                <Link
+                  to="/verify"
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded-lg text-xs font-bold border border-amber-200 dark:border-amber-800 hover:bg-amber-100 transition"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  আনভেরিফাইড — প্রোফাইল ভেরিফাই করুন →
+                </Link>
               )}
             </div>
           </div>
@@ -1069,39 +1074,25 @@ export const Account: React.FC = () => {
               )}
             </div>
 
-            {/* NID Verification Section (For Admin Verified Badge) */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+            {/* Private Verification Callout (Redirecting to /verify private bucket flow) */}
+            <div className="p-4 sm:p-5 bg-blue-50/70 dark:bg-blue-950/30 rounded-2xl border border-blue-200 dark:border-blue-800/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-[#0B63E5]" />
-                  <span>অ্যাডমিন যাচাইকরণ তথ্য (NID — গোপনীয়, শুধুমাত্র অ্যাডমিন দেখবেন)</span>
+                  <span>প্রোফাইল ভেরিফিকেশন ও ব্লু ব্যাজ (গোপনীয় NID যাচাই)</span>
                 </h4>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  পাবলিক পেশাজীবী তালিকায় যুক্ত হতে এবং ব্লু ভেরিফাইড ব্যাজ পেতে আপনার NID ও সেলফি নিরাপদ প্রাইভেট ভেরিফিকেশন পেজে জমা দিন।
+                </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-                <input
-                  type="text"
-                  value={nidNumber}
-                  onChange={(e) => setNidNumber(e.target.value)}
-                  placeholder="১০, ১৩ বা ১৭ সংখ্যার NID নম্বর (ঐচ্ছিক)"
-                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-medium"
-                />
-                <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl cursor-pointer transition justify-center">
-                  <Upload className="w-4 h-4 text-[#0B63E5]" />
-                  <span>
-                    {uploadingMedia === 'nid'
-                      ? 'আপলোড হচ্ছে...'
-                      : nidPhotoUrl
-                      ? '✓ NID ডকুমেন্ট সংযুক্ত (পরিবর্তন করুন)'
-                      : 'NID ছবি যুক্ত করুন (ঐচ্ছিক)'}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleProfileImageUpload(e, 'nid')}
-                    className="hidden"
-                  />
-                </label>
-              </div>
+              <Link
+                to="/verify"
+                className="px-4 py-2.5 bg-brand text-white text-xs font-bold rounded-xl shrink-0 transition shadow-sm"
+              >
+                {profile?.verification_status === 'verified' || profile?.is_verified
+                  ? 'ভেরিফিকেশন স্ট্যাটাস দেখুন'
+                  : 'প্রোফাইল ভেরিফাই করুন →'}
+              </Link>
             </div>
 
             <button

@@ -1,17 +1,31 @@
 import type { Division, District, Upazila, Profession, SiteSettings } from '../types/database';
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  id: 1,
   site_name: 'জমি৩৬০',
   site_name_en: 'Jomi360',
-  hero_title: 'জমি ও আইনসেবা-সংশ্লিষ্ট পেশাজীবীদের খুঁজুন এক জায়গায় সার্ভেয়ার, দলিল লেখক ও আইনজীবীদের পেশাগত তথ্য দেখুন',
+  tagline: 'পেশাজীবী ডিরেক্টরি ও মার্কেটপ্লেস',
+  hero_title: 'আপনার এলাকার যাচাইকৃত সার্ভেয়ার, দলিল লেখক ও আইনজীবী খুঁজুন এক জায়গায়',
+  hero_subtitle:
+    'বিভাগ, জেলা ও উপজেলা বাছাই করে এক ক্লিকেই অভিজ্ঞ ও ভেরিফাইড পেশাজীবীদের প্রোফাইল দেখুন, জব পোস্ট করুন এবং নিরাপদে কাজ সম্পন্ন করুন।',
+  logo_url: '',
+  favicon_url: '',
+  primary_color: '#0B63E5',
+  accent_color: '#16A34A',
+  default_theme: 'light',
   video_url: '',
   footer_about:
-    'বাংলাদেশের সর্ববৃহৎ পেশাজীবী ডিরেক্টরি। জমিজমা সংক্রান্ত যেকোনো কাজে আপনার এলাকার সঠিক ও অভিজ্ঞ সার্ভেয়ার, আইনি পরামর্শক ও দলিল লেখক সহজেই খুঁজুন।',
+    'বাংলাদেশের বিশ্বস্ত পেশাজীবী ডিরেক্টরি ও জব মার্কেটপ্লেস। জমিজমা সংক্রান্ত যেকোনো কাজে আপনার এলাকার সঠিক ও ভেরিফাইড সার্ভেয়ার, আইনি পরামর্শক ও দলিল লেখক সহজেই খুঁজুন।',
+  support_whatsapp: '01700000000',
   owner_name: '',
   owner_designation: '',
   contact_email: 'info@jomi360.com',
   contact_phone: '01700000000',
   contact_address: 'ঢাকা, বাংলাদেশ',
+  require_job_approval: false,
+  require_application_approval: false,
+  require_verified_to_post_job: false,
+  require_verified_to_apply_job: false,
 };
 
 export const CANONICAL_PROFESSIONS: Profession[] = [

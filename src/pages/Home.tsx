@@ -11,9 +11,9 @@ import {
   RotateCcw,
   AlertCircle,
   RefreshCw,
+  Briefcase,
 } from 'lucide-react';
 import {
-  fetchSiteSettings,
   fetchProfessions,
   fetchDivisions,
   fetchDistricts,
@@ -21,9 +21,9 @@ import {
   fetchPublicProfiles,
   getSupabaseConfigError,
   normalizeBn,
+  resolveLocationNames,
 } from '../lib/supabase';
 import type {
-  SiteSettings,
   Profession,
   Division,
   District,
@@ -32,8 +32,9 @@ import type {
 } from '../types/database';
 import { ProfileCard } from '../components/ProfileCard';
 import { ListingSection } from '../components/ListingSection';
+import { HomeBannerCarousel } from '../components/HomeBannerCarousel';
 import { useAuth } from '../context/AuthContext';
-import { resolveLocationNames } from '../lib/supabase';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 const DIVISION_CANONICAL_ORDER = [
   'ঢাকা',
@@ -49,8 +50,8 @@ const DIVISION_CANONICAL_ORDER = [
 export const Home: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile: authProfile } = useAuth();
+  const { settings } = useSiteSettings();
 
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [professions, setProfessions] = useState<Profession[]>([]);
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
@@ -91,14 +92,12 @@ export const Home: React.FC = () => {
     }
 
     try {
-      const [s, p, d, profs] = await Promise.all([
-        fetchSiteSettings(),
+      const [p, d, profs] = await Promise.all([
         fetchProfessions(),
         fetchDivisions(),
         fetchPublicProfiles({ limit: 500, throwOnError: !configErr }),
       ]);
 
-      setSettings(s);
       setProfessions(Array.isArray(p) ? p : []);
       setDivisions(Array.isArray(d) ? d : []);
       setAllProfiles(Array.isArray(profs) ? profs : []);
@@ -280,17 +279,23 @@ export const Home: React.FC = () => {
   };
 
   const heroTitle =
-    settings?.hero_title ||
-    'জমি ও আইনসেবা-সংশ্লিষ্ট পেশাজীবীদের খুঁজুন এক জায়গায় সার্ভেয়ার, দলিল লেখক ও আইনজীবীদের পেশাগত তথ্য দেখুন। আপনার এলাকা অনুযায়ী খুঁজে নিন এবং প্রয়োজনীয় যোগাযোগের তথ্য জানুন';
+    settings.hero_title ||
+    'আপনার এলাকার যাচাইকৃত সার্ভেয়ার, দলিল লেখক ও আইনজীবী খুঁজুন এক জায়গায়';
+  const heroSubtitle =
+    settings.hero_subtitle ||
+    'বিভাগ, জেলা ও উপজেলা বাছাই করে এক ক্লিকেই অভিজ্ঞ ও ভেরিফাইড পেশাজীবীদের প্রোফাইল দেখুন, জব পোস্ট করুন এবং নিরাপদে কাজ সম্পন্ন করুন।';
 
   return (
-    <div className="space-y-14 pb-16">
-      {/* 1) HERO SECTION (Clean Light Ice-Blue + Pure White Card Aesthetic) */}
+    <div className="space-y-12 pb-16">
+      {/* 0) TOP HOME BANNER CAROUSEL (Auto-hidden when no active banners exist) */}
+      <HomeBannerCarousel />
+
+      {/* 1) HERO SECTION */}
       <section className="relative pt-10 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-[#E8F1FF] via-[#F0F6FF] to-[#F4F7FB] dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border-b border-[#DCE7F9] dark:border-slate-800 overflow-hidden">
         <div className="relative z-10 max-w-5xl mx-auto text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-blue-950/60 border border-[#BFDBFE] dark:border-blue-800 text-[#0B63E5] dark:text-blue-300 text-xs font-bold shadow-xs">
-            <Sparkles className="w-4 h-4 text-[#0B63E5] dark:text-blue-400" />
-            <span>বাংলাদেশের সর্ববৃহৎ পেশাজীবী নেটওয়ার্ক</span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-blue-950/60 border border-[#BFDBFE] dark:border-blue-800 text-[var(--brand-primary)] dark:text-blue-300 text-xs font-bold shadow-xs">
+            <Sparkles className="w-4 h-4 text-[var(--brand-primary)] dark:text-blue-400" />
+            <span>{settings.tagline || 'বাংলাদেশের বিশ্বস্ত পেশাজীবী নেটওয়ার্ক'}</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight font-siliguri text-[#0F2942] dark:text-white text-balance">
@@ -298,7 +303,7 @@ export const Home: React.FC = () => {
           </h1>
 
           <p className="text-[#475569] dark:text-slate-300 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-            বিভাগ, জেলা ও উপজেলা বাছাই করে এক ক্লিকেই অভিজ্ঞ ও নিবন্ধিত পেশাজীবীদের প্রোফাইল দেখুন এবং সরাসরি যোগাযোগ করুন।
+            {heroSubtitle}
           </p>
 
           {/* 2) LIVE SEARCH & CASCADING FILTER CARD */}
@@ -501,23 +506,27 @@ export const Home: React.FC = () => {
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <Link
                 to="/professionals"
-                className="px-6 py-3 bg-[#0B63E5] hover:bg-[#084FC7] text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-colors shadow-sm shadow-blue-600/15"
+                className="px-5 py-3 bg-brand text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-colors shadow-sm"
               >
-                <span>সব পেশাজীবী দেখুন</span>
+                <span>সব ভেরিফাইড পেশাজীবী</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
 
               <Link
-                to={user || authProfile ? '/account' : '/register'}
-                className="px-6 py-3 bg-[#EFF6FF] hover:bg-[#DBEAFE] dark:bg-blue-950/50 dark:hover:bg-blue-900/60 text-[#0B63E5] dark:text-blue-300 font-bold text-sm rounded-xl flex items-center gap-2 border border-[#BFDBFE] dark:border-blue-800 transition-colors"
+                to="/jobs"
+                className="px-5 py-3 bg-[#EFF6FF] hover:bg-[#DBEAFE] dark:bg-blue-950/50 dark:hover:bg-blue-900/60 text-[var(--brand-primary)] dark:text-blue-300 font-bold text-sm rounded-xl flex items-center gap-2 border border-[#BFDBFE] dark:border-blue-800 transition-colors"
+              >
+                <Briefcase className="w-4 h-4" />
+                <span>জব মার্কেটপ্লেস</span>
+              </Link>
+
+              <Link
+                to={user || authProfile ? '/verify' : '/register'}
+                className="px-5 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0F2942] dark:text-slate-200 font-bold text-sm rounded-xl flex items-center gap-2 transition-colors"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>
-                  {user || authProfile
-                    ? authProfile?.phone
-                      ? 'আমার প্রোফাইল এডিট করুন'
-                      : 'পেশাজীবী প্রোফাইল তৈরি করুন'
-                    : 'পেশাজীবী রেজিস্ট্রেশন'}
+                  {user || authProfile ? 'প্রোফাইল ভেরিফাই করুন' : 'ফ্রি একাউন্ট খুলুন'}
                 </span>
               </Link>
             </div>
