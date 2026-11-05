@@ -56,6 +56,7 @@ export interface ExtraInfoGeneric {
   specialization?: string;
   experience_years?: string;
   qualification?: string;
+  whatsapp_number?: string;
   [key: string]: any;
 }
 

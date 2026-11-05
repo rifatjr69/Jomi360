@@ -4,17 +4,28 @@ import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import type { Banner } from '../types/database';
 import { fetchActiveBanners } from '../lib/marketplaceService';
 
-export const HomeBannerCarousel: React.FC = () => {
+interface HomeBannerCarouselProps {
+  onBannersLoaded?: (hasBanners: boolean) => void;
+}
+
+export const HomeBannerCarousel: React.FC<HomeBannerCarouselProps> = ({ onBannersLoaded }) => {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     fetchActiveBanners().then((list) => {
-      setBanners(Array.isArray(list) ? list : []);
+      if (!isMounted) return;
+      const valid = Array.isArray(list) ? list : [];
+      setBanners(valid);
+      onBannersLoaded?.(valid.length > 0);
     });
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [onBannersLoaded]);
 
   useEffect(() => {
     if (banners.length <= 1 || isPaused) return;
@@ -81,7 +92,7 @@ export const HomeBannerCarousel: React.FC = () => {
 
   return (
     <section
-      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5"
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-4"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}

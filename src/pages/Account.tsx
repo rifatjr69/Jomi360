@@ -68,6 +68,7 @@ export const Account: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [phone, setPhone] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [nidNumber, setNidNumber] = useState('');
   const [nidPhotoUrl, setNidPhotoUrl] = useState('');
   const [professionId, setProfessionId] = useState('');
@@ -117,6 +118,7 @@ export const Account: React.FC = () => {
         setFullName((prev) => prev || meta.full_name || '');
         setEmailInput(user.email || '');
         setPhone((prev) => prev || meta.phone || '');
+        setWhatsappNumber((prev) => prev || meta.whatsapp_number || meta.phone || '');
       }
       return;
     }
@@ -124,6 +126,7 @@ export const Account: React.FC = () => {
     setFullName(profile.full_name || '');
     setEmailInput(profile.email || user?.email || '');
     setPhone(profile.phone || '');
+    setWhatsappNumber(profile.extra_info?.whatsapp_number || profile.phone || '');
     setNidNumber(profile.nid_number || '');
     setNidPhotoUrl(profile.nid_photo_url || '');
     setProfessionId(profile.profession_id || (professions[0]?.id ?? ''));
@@ -214,12 +217,17 @@ export const Account: React.FC = () => {
     if (!user && !profile) return;
 
     const cleanPhone = toEnglishDigits(phone.trim());
+    const cleanWhatsapp = toEnglishDigits(whatsappNumber.trim());
     if (!fullName.trim() || !cleanPhone) {
       showToast('পূর্ণ নাম এবং মোবাইল নম্বর আবশ্যিক।', 'error');
       return;
     }
     if (!/^01[3-9]\d{8}$/.test(cleanPhone)) {
       showToast('সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন (যেমন: 01712345678)।', 'error');
+      return;
+    }
+    if (cleanWhatsapp && !/^01[3-9]\d{8}$/.test(cleanWhatsapp)) {
+      showToast('হোয়াটসঅ্যাপ নম্বরটি সঠিক ১১ সংখ্যার হতে হবে (যেমন: 01712345678)।', 'error');
       return;
     }
     if (!selectedLocation?.division_id || !selectedLocation?.district_id) {
@@ -236,6 +244,7 @@ export const Account: React.FC = () => {
       const mergedExtra: Record<string, any> = {
         ...extraInfo,
         services: servicesText.trim(),
+        whatsapp_number: cleanWhatsapp || cleanPhone,
         ...(selectedLocation?.division_name ? { _division_name: selectedLocation.division_name } : {}),
         ...(selectedLocation?.district_name ? { _district_name: selectedLocation.district_name } : {}),
         ...(selectedLocation?.upazila_name ? { _upazila_name: selectedLocation.upazila_name } : {}),
@@ -471,6 +480,7 @@ export const Account: React.FC = () => {
     extra_info: {
       ...extraInfo,
       services: servicesText.trim(),
+      whatsapp_number: toEnglishDigits(whatsappNumber.trim()) || toEnglishDigits(phone.trim()),
     },
     role: profile?.role || 'user',
     status: profile?.status || 'approved',
@@ -718,7 +728,13 @@ export const Account: React.FC = () => {
                 <input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPhone(val);
+                    if (!whatsappNumber || whatsappNumber === phone) {
+                      setWhatsappNumber(val);
+                    }
+                  }}
                   required
                   maxLength={11}
                   placeholder="01712345678"
@@ -727,6 +743,21 @@ export const Account: React.FC = () => {
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                  <span>হোয়াটসঅ্যাপ (WhatsApp) নম্বর *</span>
+                  <span className="text-[11px] text-[#16A34A] font-semibold">মেসেজ অপশন</span>
+                </label>
+                <input
+                  type="tel"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  maxLength={11}
+                  placeholder="01712345678"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700/60 rounded-xl text-sm font-mono font-bold text-[#16A34A] focus:ring-2 focus:ring-[#16A34A]"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   পেশা নির্বাচন করুন *
                 </label>

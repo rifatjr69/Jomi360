@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Check, ArrowRight, Edit, Trash2, Compass, Star } from 'lucide-react';
+import { MapPin, Check, ArrowRight, Edit, Trash2, Compass, Star, MessageCircle } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { ConfirmModal } from './ConfirmModal';
 import { VerifiedBadge } from './VerifiedBadge';
 import type { PublicProfile } from '../types/database';
 import { useAuth } from '../context/AuthContext';
-import { adminDeleteProfile, normalizeBn, toBanglaDigits } from '../lib/supabase';
+import { adminDeleteProfile, normalizeBn, toBanglaDigits, toEnglishDigits } from '../lib/supabase';
 import { useToast } from './Toast';
 
 interface ProfileCardProps {
@@ -206,21 +206,44 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
             </p>
           )}
 
-          {/* Action CTA Button */}
-          <div className="mt-auto pt-1">
+          {/* Action CTA Button + WhatsApp Message */}
+          <div className="mt-auto pt-2 flex items-center gap-2">
             {isPreview ? (
-              <div className="w-full py-2.5 px-4 bg-brand text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs select-none">
+              <div className="flex-1 py-2.5 px-4 bg-brand text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-xs select-none">
                 <span>প্রোফাইল দেখুন</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </div>
             ) : (
-              <Link
-                to={`/profile/${profile.id}`}
-                className="w-full py-2.5 px-4 bg-brand text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-xs"
-              >
-                <span>প্রোফাইল দেখুন</span>
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </Link>
+              <>
+                <Link
+                  to={`/profile/${profile.id}`}
+                  className="flex-1 py-2.5 px-3 bg-brand hover:opacity-95 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                >
+                  <span>প্রোফাইল দেখুন</span>
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                </Link>
+
+                {(() => {
+                  const cardWa = profile?.extra_info?.whatsapp_number
+                    ? toEnglishDigits(profile.extra_info.whatsapp_number).replace(/\D/g, '')
+                    : profile?.phone
+                    ? toEnglishDigits(profile.phone).replace(/\D/g, '')
+                    : '';
+                  if (!cardWa) return null;
+                  const cardWaUrl = `https://wa.me/${cardWa.startsWith('88') ? cardWa : `88${cardWa}`}`;
+                  return (
+                    <a
+                      href={cardWaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-xl hover:bg-[#16A34A] hover:text-white transition flex items-center justify-center shadow-xs"
+                      title="হোয়াটসঅ্যাপে মেসেজ পাঠান"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </a>
+                  );
+                })()}
+              </>
             )}
           </div>
         </div>

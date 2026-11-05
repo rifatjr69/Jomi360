@@ -659,6 +659,18 @@ function hasLeftoverInstructionBug(text: string | null | undefined): boolean {
   );
 }
 
+function isCorruptedOrInvalidText(text: string | null | undefined): boolean {
+  if (!text) return true;
+  const trimmed = text.trim();
+  if (trimmed === '' || trimmed === '?' || trimmed === '??' || /^[\?\s\-_]+$/.test(trimmed)) {
+    return true;
+  }
+  if (trimmed.includes('??')) {
+    return true;
+  }
+  return false;
+}
+
 function parseBoolSetting(val: any, defaultVal: boolean): boolean {
   if (typeof val === 'boolean') return val;
   if (val === 'true' || val === '1' || val === 1) return true;
@@ -680,20 +692,29 @@ export function sanitizeSiteSettings(raw: Record<string, any> | null | undefined
   return {
     id: 1,
     site_name:
-      !cleanSiteName || cleanSiteName.length > 40 || hasLeftoverInstructionBug(cleanSiteName)
+      !cleanSiteName ||
+      cleanSiteName.length > 40 ||
+      hasLeftoverInstructionBug(cleanSiteName) ||
+      isCorruptedOrInvalidText(cleanSiteName)
         ? DEFAULT_SITE_SETTINGS.site_name
         : cleanSiteName,
     site_name_en: String(merged.site_name_en || DEFAULT_SITE_SETTINGS.site_name_en).trim(),
     tagline:
-      !cleanTagline || hasLeftoverInstructionBug(cleanTagline)
+      !cleanTagline ||
+      hasLeftoverInstructionBug(cleanTagline) ||
+      isCorruptedOrInvalidText(cleanTagline)
         ? DEFAULT_SITE_SETTINGS.tagline
         : cleanTagline,
     hero_title:
-      !cleanHeroTitle || hasLeftoverInstructionBug(cleanHeroTitle)
+      !cleanHeroTitle ||
+      hasLeftoverInstructionBug(cleanHeroTitle) ||
+      isCorruptedOrInvalidText(cleanHeroTitle)
         ? DEFAULT_SITE_SETTINGS.hero_title
         : cleanHeroTitle,
     hero_subtitle:
-      !cleanHeroSub || hasLeftoverInstructionBug(cleanHeroSub)
+      !cleanHeroSub ||
+      hasLeftoverInstructionBug(cleanHeroSub) ||
+      isCorruptedOrInvalidText(cleanHeroSub)
         ? DEFAULT_SITE_SETTINGS.hero_subtitle
         : cleanHeroSub,
     logo_url: String(merged.logo_url || '').trim(),

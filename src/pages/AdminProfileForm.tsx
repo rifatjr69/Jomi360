@@ -46,6 +46,7 @@ export const AdminProfileForm: React.FC = () => {
   const [userSerial, setUserSerial] = useState<number>(1);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [email, setEmail] = useState('');
   const [nidNumber, setNidNumber] = useState('');
   const [professionId, setProfessionId] = useState('');
@@ -106,6 +107,7 @@ export const AdminProfileForm: React.FC = () => {
             setUserSerial(existing.user_serial || 1);
             setFullName(existing.full_name || '');
             setPhone(existing.phone || '');
+            setWhatsappNumber(existing.extra_info?.whatsapp_number || existing.phone || '');
             setEmail(existing.email || '');
             setNidNumber(existing.nid_number || '');
             setProfessionId(existing.profession_id || (profs[0]?.id ?? ''));
@@ -243,9 +245,11 @@ export const AdminProfileForm: React.FC = () => {
         finalCoverPhotoUrl = await uploadProfileMedia(coverPhotoFile, 'avatars', 'admin');
       }
 
+      const cleanWhatsapp = toEnglishDigits(whatsappNumber.trim());
       const mergedExtra = {
         ...extraInfo,
         services: servicesText.trim(),
+        whatsapp_number: cleanWhatsapp || cleanPhone,
         ...(selectedLocation.division_name ? { _division_name: selectedLocation.division_name } : {}),
         ...(selectedLocation.district_name ? { _district_name: selectedLocation.district_name } : {}),
         ...(selectedLocation.upazila_name ? { _upazila_name: selectedLocation.upazila_name } : {}),
@@ -401,10 +405,30 @@ export const AdminProfileForm: React.FC = () => {
                 <input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPhone(val);
+                    if (!whatsappNumber || whatsappNumber === phone) {
+                      setWhatsappNumber(val);
+                    }
+                  }}
                   placeholder="01712345678"
                   required
                   className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-mono font-medium text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-[#0B63E5]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                  <span>হোয়াটসঅ্যাপ (WhatsApp) নম্বর</span>
+                  <span className="text-[11px] text-[#16A34A] font-bold">মেসেজ বাটন লিংক</span>
+                </label>
+                <input
+                  type="tel"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  placeholder="01712345678"
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 rounded-2xl text-sm font-mono font-bold text-[#16A34A] focus:ring-2 focus:ring-[#16A34A]"
                 />
               </div>
 

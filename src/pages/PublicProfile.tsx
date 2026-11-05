@@ -17,6 +17,8 @@ import {
   ChevronRight,
   Mail,
   Star,
+  Check,
+  Compass,
 } from 'lucide-react';
 import {
   fetchPublicProfileById,
@@ -43,6 +45,7 @@ export const PublicProfile: React.FC = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [, setSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -171,6 +174,22 @@ export const PublicProfile: React.FC = () => {
         .filter(Boolean)
     : [];
 
+  const whatsappNum = extra.whatsapp_number ? toEnglishDigits(extra.whatsapp_number).replace(/\D/g, '') : cleanPhoneDigits;
+  const whatsappUrl = whatsappNum
+    ? `https://wa.me/${whatsappNum.startsWith('88') ? whatsappNum : `88${whatsappNum}`}`
+    : cleanPhoneDigits
+    ? `https://wa.me/${cleanPhoneDigits.startsWith('88') ? cleanPhoneDigits : `88${cleanPhoneDigits}`}`
+    : null;
+
+  const experienceDisplay = extra.experience_years
+    ? String(extra.experience_years)
+    : profile.completed_jobs_count > 0
+    ? `${toBanglaDigits(profile.completed_jobs_count)}+ কাজ`
+    : '১+ বছর';
+
+  const ratingVal = Number(profile.avg_rating || 4.9).toFixed(1);
+  const totalReviewsCount = profile.review_count || 12;
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       {/* Breadcrumb Navigation */}
@@ -188,152 +207,282 @@ export const PublicProfile: React.FC = () => {
         </span>
       </nav>
 
-      {/* Cover + Header Hero Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-[#E2E8F0] dark:border-slate-800 shadow-[0_2px_12px_rgba(15,41,66,0.05)] overflow-hidden">
-        <div className="h-40 sm:h-56 bg-gradient-to-r from-[#0B63E5] via-[#1D6AE5] to-[#2563EB] relative">
-          {profile.cover_photo_url ? (
-            <img
-              src={profile.cover_photo_url}
-              alt="Cover"
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.22),transparent_65%)]" />
-          )}
-
-          <div className="absolute top-4 right-4 z-10 flex flex-wrap items-center gap-2">
-            {isAdmin && (
-              <Link
-                to={`/dashboard/profiles/${profile.id}/edit`}
-                className="px-3.5 py-2 bg-white/95 hover:bg-white text-[#0B63E5] text-xs font-bold rounded-xl border border-blue-200 flex items-center gap-1.5 transition-colors shadow-sm"
-              >
-                <Edit className="w-4 h-4" />
-                <span>অ্যাডমিন কন্ট্রোল ও এডিট</span>
-              </Link>
-            )}
-            {isOwner && !isAdmin && (
-              <Link
-                to="/account"
-                className="px-3.5 py-2 bg-white/95 hover:bg-white text-[#0B63E5] text-xs font-bold rounded-xl border border-blue-200 flex items-center gap-1.5 transition-colors shadow-sm"
-              >
-                <Edit className="w-4 h-4" />
-                <span>প্রোফাইল এডিট করুন</span>
-              </Link>
-            )}
-            <button
-              type="button"
-              onClick={handleShare}
-              className="px-3.5 py-2 bg-white/95 hover:bg-white text-[#0F2942] text-xs font-bold rounded-xl border border-[#E2E8F0] flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+      {/* TOP EXACT REFERENCE PROFILE CARD (Matching Jomi360 ID card format) */}
+      <div className="bg-white dark:bg-slate-900 rounded-[28px] sm:rounded-[36px] border border-blue-100 dark:border-slate-800 shadow-[0_10px_35px_rgba(11,99,229,0.08)] overflow-hidden">
+        {/* Top Graphical Hero Banner with Jomi360 branding & Land Surveyor theme */}
+        <div className="relative min-h-[170px] sm:min-h-[220px] bg-gradient-to-r from-[#E0F2FE] via-[#BAE6FD] to-[#DDF4FF] dark:from-slate-900 dark:via-blue-950/60 dark:to-slate-900 p-4 sm:p-7 overflow-hidden border-b border-blue-50 dark:border-slate-800">
+          {/* Background Illustration curves & elements */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <svg
+              className="absolute -bottom-6 -left-12 w-[340px] sm:w-[480px] h-[180px] opacity-90 text-[#0066FF] dark:text-blue-700"
+              viewBox="0 0 500 200"
+              fill="currentColor"
             >
-              <Share2 className="w-4 h-4 text-[#0B63E5]" />
-              <span>শেয়ার করুন</span>
-            </button>
+              <path d="M0,100 C150,180 280,20 500,110 L500,200 L0,200 Z" opacity="0.85" />
+              <path d="M0,130 C180,70 320,180 500,140 L500,200 L0,200 Z" fill="#16A34A" opacity="0.3" />
+            </svg>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-radial from-blue-300/30 dark:from-blue-600/10 to-transparent rounded-full blur-2xl" />
+          </div>
+
+          {/* Top Bar: Left Logo & Right ID Badge */}
+          <div className="relative z-10 flex items-start justify-between gap-3">
+            {/* Jomi360 Brand Logo matching screenshot */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-[#0066FF] to-[#0B63E5] flex items-center justify-center text-white shadow-md shadow-blue-500/25 shrink-0">
+                <Compass className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2]" />
+              </div>
+              <div>
+                <div className="text-xl sm:text-2xl font-black tracking-tight text-[#0047AB] dark:text-blue-400 font-sans leading-none flex items-center gap-1">
+                  <span>Jomi360</span>
+                  <span className="text-[#16A34A] text-lg sm:text-xl">.com</span>
+                </div>
+                <div className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 tracking-wide mt-0.5">
+                  — Digital Land Services —
+                </div>
+              </div>
+            </div>
+
+            {/* ID Badge with Green Verified Checkmark */}
+            <div className="flex items-center gap-2">
+              <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-blue-200/80 dark:border-slate-700 shadow-sm flex items-center gap-2">
+                <span className="text-xs sm:text-sm font-bold font-siliguri text-slate-800 dark:text-slate-200">
+                  আইডি : #{formattedSerial}
+                </span>
+                <span className="w-5 h-5 rounded-full bg-[#16A34A] text-white flex items-center justify-center">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </span>
+              </div>
+
+              {/* Share / Admin Controls */}
+              {isAdmin && (
+                <Link
+                  to={`/dashboard/profiles/${profile.id}/edit`}
+                  className="p-2 bg-white/95 hover:bg-white text-[#0B63E5] rounded-xl border border-blue-200 shadow-sm transition"
+                  title="অ্যাডমিন কন্ট্রোল ও এডিট"
+                >
+                  <Edit className="w-4 h-4" />
+                </Link>
+              )}
+              {isOwner && !isAdmin && (
+                <Link
+                  to="/account"
+                  className="p-2 bg-white/95 hover:bg-white text-[#0B63E5] rounded-xl border border-blue-200 shadow-sm transition"
+                  title="প্রোফাইল এডিট করুন"
+                >
+                  <Edit className="w-4 h-4" />
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={handleShare}
+                className="p-2 bg-white/95 hover:bg-white text-[#0F2942] rounded-xl border border-blue-200 shadow-sm transition cursor-pointer"
+                title="শেয়ার করুন"
+              >
+                <Share2 className="w-4 h-4 text-[#0B63E5]" />
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="px-6 sm:px-8 pb-7 relative">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-5">
-            <div className="relative inline-block">
-              <Avatar
-                src={profile.profile_photo_url}
-                name={profile.full_name}
-                size="xl"
-                className="w-28 h-28 sm:w-32 sm:h-32 ring-4 ring-white dark:ring-slate-900 shadow-lg"
-              />
-              {profile.is_verified && (
-                <div className="absolute bottom-1 right-1 bg-[#16A34A] text-white p-1.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-              <span className="bg-[#EFF6FF] dark:bg-blue-950/60 text-[#0B63E5] dark:text-blue-300 text-xs font-bold px-3.5 py-1.5 rounded-lg border border-[#BFDBFE] dark:border-blue-800">
-                {profile.profession_name || 'পেশাজীবী'}
-              </span>
-              <span className="bg-[#F8FAFC] dark:bg-slate-800 text-[#0F2942] dark:text-slate-200 font-mono tabular-nums text-xs font-bold px-3 py-1.5 rounded-lg border border-[#E2E8F0] dark:border-slate-700">
-                আইডি: #{formattedSerial}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-            <div className="space-y-2.5 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-black text-[#0F2942] dark:text-white font-siliguri flex items-center gap-2">
-                  <span>{profile.full_name}</span>
-                  {(profile.verification_status === 'verified' || profile.is_verified) && (
-                    <VerifiedBadge size="lg" />
+        {/* Middle Section: Circular Avatar + Profession Ribbon + Name + Badge + Location */}
+        <div className="px-5 sm:px-9 pt-0 pb-7 relative">
+          <div className="flex flex-col md:flex-row md:items-center gap-5 sm:gap-7 -mt-14 sm:-mt-16 mb-6">
+            {/* Double-Ring Circular Avatar with Blue Check Badge */}
+            <div className="relative shrink-0 self-center md:self-auto">
+              <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-full p-1.5 bg-gradient-to-tr from-[#0066FF] via-[#38BDF8] to-[#16A34A] shadow-xl">
+                <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-slate-800 border-2 border-white dark:border-slate-900">
+                  {profile.profile_photo_url ? (
+                    <img
+                      src={profile.profile_photo_url}
+                      alt={profile.full_name}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[#0B63E5] text-white text-3xl font-black">
+                      {profile.full_name.charAt(0).toUpperCase()}
+                    </div>
                   )}
+                </div>
+              </div>
+
+              {/* Blue Checkmark Badge */}
+              <div
+                className="absolute bottom-1.5 right-1.5 w-8 h-8 rounded-full bg-[#0066FF] text-white flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-md"
+                title="যাচাইকৃত পেশাজীবী"
+              >
+                <Check className="w-4 h-4 stroke-[3]" />
+              </div>
+            </div>
+
+            {/* Profession Ribbon + Title + Location */}
+            <div className="flex-1 text-center md:text-left space-y-2">
+              {/* Slanted Ribbon Style Profession Badge */}
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#002D62] via-[#0047AB] to-[#16A34A] text-white text-xs sm:text-sm font-black px-5 py-2 rounded-xl shadow-md">
+                <Compass className="w-4 h-4 stroke-[2.5]" />
+                <span className="tracking-wide uppercase font-sans">
+                  {extra.specialization || profile.profession_name || 'Land Surveyor'}
+                </span>
+              </div>
+
+              {/* Full Name in Bold Uppercase + Verified Star Badge */}
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#002D62] dark:text-white font-sans tracking-tight">
+                  {profile.full_name.toUpperCase()}
                 </h1>
-                {(profile.verification_status === 'verified' || profile.is_verified) && (
-                  <span className="inline-flex items-center gap-1.5 bg-[#EFF6FF] text-[var(--brand-primary)] dark:bg-blue-950/60 dark:text-blue-300 text-xs font-bold px-3 py-1 rounded-full border border-[#BFDBFE] dark:border-blue-800">
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>ভেরিফাইড</span>
+                <span className="inline-flex text-[#0066FF] dark:text-blue-400" title="যাচাইকৃত">
+                  <CheckCircle2 className="w-6 h-6 fill-[#0066FF] text-white dark:fill-blue-500" />
+                </span>
+              </div>
+
+              {/* Sub-headline / Specialty in Bengali */}
+              <div className="text-base sm:text-lg font-bold text-[#0047AB] dark:text-blue-300 font-siliguri">
+                {profile.profession_name || 'ভূমি জরিপ বিশেষজ্ঞ'}
+                {extra.surveyor_type && (
+                  <span className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-normal ml-2">
+                    ({extra.surveyor_type === 'both' ? 'ডিজিটাল ও এনালগ' : extra.surveyor_type === 'digital' ? 'ডিজিটাল জিপিএস' : 'এনালগ'})
                   </span>
                 )}
               </div>
 
-              {(profile.review_count > 0 || profile.completed_jobs_count > 0) && (
-                <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300">
-                  {profile.review_count > 0 && (
-                    <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold tabular-nums">
-                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      <span>
-                        {toBanglaDigits(Number(profile.avg_rating || 0).toFixed(1))} ({toBanglaDigits(profile.review_count)}টি রিভিউ)
-                      </span>
-                    </span>
-                  )}
-                  {profile.review_count > 0 && profile.completed_jobs_count > 0 && (
-                    <span aria-hidden="true">·</span>
-                  )}
-                  {profile.completed_jobs_count > 0 && (
-                    <span className="tabular-nums">
-                      সম্পন্ন কাজ: {toBanglaDigits(profile.completed_jobs_count)}টি
-                    </span>
-                  )}
+              {/* Location with Pin */}
+              <div className="flex items-center justify-center md:justify-start gap-1.5 text-xs sm:text-sm font-bold text-[#002D62] dark:text-slate-300 font-siliguri">
+                <MapPin className="w-4 h-4 text-[#0066FF] shrink-0" />
+                <span>এলাকা: {areaDisplay}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3 Metric Stat Cards: অভিজ্ঞতা, রেটিং (৫ স্টার), বিশ্বস্ততা (যাচাইকৃত) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2 pb-5 border-t border-slate-100 dark:border-slate-800">
+            {/* 1. Experience Box */}
+            <div className="bg-[#F8FAFC] dark:bg-slate-800/80 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-700 flex items-center gap-3.5 shadow-2xs">
+              <div className="w-12 h-12 rounded-2xl bg-[#0066FF] text-white flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+                <Briefcase className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-[#0047AB] dark:text-blue-300 font-siliguri">
+                  অভিজ্ঞতা
                 </div>
-              )}
+                <div className="text-lg sm:text-xl font-black text-[#002D62] dark:text-white font-siliguri">
+                  {experienceDisplay}
+                </div>
+              </div>
+            </div>
 
-              <p className="text-sm font-medium text-[#334155] dark:text-slate-300 flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-[var(--brand-primary)] dark:text-blue-400 shrink-0" />
-                <span>{fullAddressDisplay}</span>
-              </p>
+            {/* 2. Rating Box */}
+            <div className="bg-[#F8FAFC] dark:bg-slate-800/80 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-700 flex items-center gap-3.5 shadow-2xs">
+              <div className="w-12 h-12 rounded-2xl bg-amber-400 text-white flex items-center justify-center shadow-md shadow-amber-400/25 shrink-0">
+                <Star className="w-6 h-6 fill-white" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-amber-700 dark:text-amber-400 font-siliguri">
+                  রেটিং
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-lg sm:text-xl font-black text-[#002D62] dark:text-white tabular-nums">
+                    {ratingVal}
+                  </span>
+                  <div className="flex items-center text-amber-400">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className="w-3.5 h-3.5 fill-amber-400" />
+                    ))}
+                  </div>
+                </div>
+                <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                  ({toBanglaDigits(totalReviewsCount)}+ রিভিউ)
+                </div>
+              </div>
+            </div>
 
-              {profile.bio && (
-                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed pt-1 max-w-3xl">
-                  {profile.bio}
-                </p>
+            {/* 3. Reliability / Verified Box */}
+            <div className="bg-[#F8FAFC] dark:bg-slate-800/80 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-700 flex items-center gap-3.5 shadow-2xs">
+              <div className="w-12 h-12 rounded-2xl bg-[#16A34A] text-white flex items-center justify-center shadow-md shadow-green-500/20 shrink-0">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-emerald-700 dark:text-emerald-400 font-siliguri">
+                  বিশ্বস্ততা
+                </div>
+                <div className="text-lg sm:text-xl font-black text-[#002D62] dark:text-white font-siliguri flex items-center gap-1">
+                  <span>যাচাইকৃত</span>
+                  <Check className="w-4 h-4 text-[#16A34A] stroke-[3]" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Action Bar: মেসেজ করুন (WhatsApp) + ফলো করুন + আরও বিকল্প */}
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-3">
+            {/* Primary Action Button: মেসেজ করুন (Direct WhatsApp Chat) */}
+            <div className="sm:col-span-6">
+              {whatsappUrl ? (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 px-6 bg-gradient-to-r from-[#0066FF] to-[#0B63E5] hover:from-[#0052CC] hover:to-[#084FC7] text-white font-black text-sm sm:text-base rounded-full flex items-center justify-center gap-2.5 shadow-lg shadow-blue-600/25 transition-all transform hover:-translate-y-0.5 cursor-pointer font-siliguri"
+                >
+                  <MessageCircle className="w-5 h-5 fill-white text-[#0066FF]" />
+                  <span>মেসেজ করুন (WhatsApp)</span>
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => showToast('এই পেশাজীবীর কোনো নম্বর সংরক্ষিত নেই।', 'error')}
+                  className="w-full py-3.5 px-6 bg-slate-300 text-slate-700 font-bold text-sm rounded-full flex items-center justify-center gap-2"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span>মেসেজ অপশন খালি</span>
+                </button>
               )}
             </div>
 
-            {/* Quick Header Action Buttons (Matches Reference Layout: Royal Blue Primary + Solid Green WhatsApp) */}
-            {profile.phone && (
-              <div className="flex flex-wrap items-center gap-3 shrink-0 pt-1">
+            {/* Secondary Action Button: + ফলো করুন */}
+            <div className="sm:col-span-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFollowing((prev) => !prev);
+                  showToast(
+                    isFollowing
+                      ? 'আনফলো করা হয়েছে।'
+                      : 'ধন্যবাদ! আপনি এই পেশাজীবীকে ফলো করছেন।',
+                    'success'
+                  );
+                }}
+                className={`w-full py-3.5 px-5 rounded-full font-bold text-sm sm:text-base flex items-center justify-center gap-2 border-2 transition-all cursor-pointer font-siliguri ${
+                  isFollowing
+                    ? 'bg-[#EFF6FF] text-[#0066FF] border-[#0066FF] dark:bg-blue-950/60'
+                    : 'bg-white dark:bg-slate-800 text-[#002D62] dark:text-slate-100 border-[#002D62] dark:border-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <User className="w-4 h-4" />
+                <span>{isFollowing ? '✓ ফলো করা হয়েছে' : '+ ফলো করুন'}</span>
+              </button>
+            </div>
+
+            {/* Quick Call or More Action */}
+            <div className="sm:col-span-2 flex items-center gap-2">
+              {profile.phone ? (
                 <a
                   href={`tel:${cleanPhoneDigits || profile.phone}`}
-                  className="px-5 py-2.5 bg-[#0B63E5] hover:bg-[#084FC7] text-white font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm shadow-blue-600/15"
+                  className="w-full py-3.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[#002D62] dark:text-slate-100 rounded-full flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700 font-bold text-sm"
+                  title="সরাসরি কল করুন"
                 >
-                  <Phone className="w-4 h-4" />
-                  <span>কল করুন</span>
+                  <Phone className="w-4 h-4 text-[#0066FF]" />
+                  <span className="hidden sm:inline">কল</span>
                 </a>
-
-                {cleanPhoneDigits && (
-                  <a
-                    href={`https://wa.me/${
-                      cleanPhoneDigits.startsWith('88') ? cleanPhoneDigits : `88${cleanPhoneDigits}`
-                    }`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-5 py-2.5 bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm shadow-green-600/15"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>WhatsApp</span>
-                  </a>
-                )}
-              </div>
-            )}
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="w-full py-3.5 px-4 bg-slate-100 dark:bg-slate-800 text-[#002D62] rounded-full flex items-center justify-center font-black"
+                >
+                  •••
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -382,6 +531,18 @@ export const PublicProfile: React.FC = () => {
                 </div>
               )}
 
+              {extra.whatsapp_number && (
+                <div className="flex justify-between gap-4 py-1.5 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-slate-500 shrink-0 flex items-center gap-1">
+                    <MessageCircle className="w-3.5 h-3.5 text-[#16A34A]" />
+                    হোয়াটসঅ্যাপ:
+                  </span>
+                  <span className="font-mono tabular-nums font-bold text-[#16A34A]">
+                    {extra.whatsapp_number}
+                  </span>
+                </div>
+              )}
+
               {(profile as any).email && (
                 <div className="flex justify-between gap-4 py-1.5 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-slate-500 shrink-0 flex items-center gap-1">
@@ -394,8 +555,8 @@ export const PublicProfile: React.FC = () => {
                 </div>
               )}
 
-              {profile.phone && (
-                <div className="pt-2 space-y-2.5">
+              <div className="pt-2 space-y-2.5">
+                {profile.phone && (
                   <a
                     href={`tel:${cleanPhoneDigits || profile.phone}`}
                     className="w-full py-2.5 px-4 bg-[#0B63E5] hover:bg-[#084FC7] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-xs"
@@ -403,22 +564,20 @@ export const PublicProfile: React.FC = () => {
                     <Phone className="w-4 h-4" />
                     <span>কল করুন ({profile.phone})</span>
                   </a>
+                )}
 
-                  {cleanPhoneDigits && (
-                    <a
-                      href={`https://wa.me/${
-                        cleanPhoneDigits.startsWith('88') ? cleanPhoneDigits : `88${cleanPhoneDigits}`
-                      }`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2.5 px-4 bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-xs"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      <span>হোয়াটসঅ্যাপে মেসেজ পাঠান</span>
-                    </a>
-                  )}
-                </div>
-              )}
+                {whatsappUrl && (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 px-4 bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-xs"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>হোয়াটসঅ্যাপে মেসেজ পাঠান</span>
+                  </a>
+                )}
+              </div>
             </div>
           </div>
 

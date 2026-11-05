@@ -7,7 +7,6 @@ import {
   UserPlus,
   Compass,
   CheckCircle2,
-  Sparkles,
   RotateCcw,
   AlertCircle,
   RefreshCw,
@@ -278,41 +277,45 @@ export const Home: React.FC = () => {
     setFilteredProfiles((prev) => prev.filter((p) => p.id !== deletedId));
   };
 
-  const heroTitle =
-    settings.hero_title ||
-    'আপনার এলাকার যাচাইকৃত সার্ভেয়ার, দলিল লেখক ও আইনজীবী খুঁজুন এক জায়গায়';
-  const heroSubtitle =
-    settings.hero_subtitle ||
-    'বিভাগ, জেলা ও উপজেলা বাছাই করে এক ক্লিকেই অভিজ্ঞ ও ভেরিফাইড পেশাজীবীদের প্রোফাইল দেখুন, জব পোস্ট করুন এবং নিরাপদে কাজ সম্পন্ন করুন।';
+  const [hasActiveBanners, setHasActiveBanners] = useState<boolean>(true);
+
+  const rawHeroTitle = settings.hero_title?.trim() || '';
+  const cleanHeroTitle =
+    !rawHeroTitle || rawHeroTitle.includes('??') || rawHeroTitle === '?'
+      ? 'আপনার এলাকার যাচাইকৃত সার্ভেয়ার, দলিল লেখক ও আইনজীবী খুঁজুন'
+      : rawHeroTitle;
+
+  const rawHeroSubtitle = settings.hero_subtitle?.trim() || '';
+  const cleanHeroSubtitle =
+    !rawHeroSubtitle || rawHeroSubtitle.includes('??') || rawHeroSubtitle === '?'
+      ? 'বিভাগ, জেলা ও উপজেলা বাছাই করে এক ক্লিকেই অভিজ্ঞ ও ভেরিফাইড পেশাজীবীদের প্রোফাইল দেখুন ও কাজ সম্পন্ন করুন।'
+      : rawHeroSubtitle;
 
   return (
-    <div className="space-y-12 pb-16">
+    <div className="space-y-6 sm:space-y-8 pb-12">
       {/* 0) TOP HOME BANNER CAROUSEL (Auto-hidden when no active banners exist) */}
-      <HomeBannerCarousel />
+      <HomeBannerCarousel onBannersLoaded={setHasActiveBanners} />
 
-      {/* 1) HERO SECTION */}
-      <section className="relative pt-10 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-[#E8F1FF] via-[#F0F6FF] to-[#F4F7FB] dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border-b border-[#DCE7F9] dark:border-slate-800 overflow-hidden">
-        <div className="relative z-10 max-w-5xl mx-auto text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-blue-950/60 border border-[#BFDBFE] dark:border-blue-800 text-[var(--brand-primary)] dark:text-blue-300 text-xs font-bold shadow-xs">
-            <Sparkles className="w-4 h-4 text-[var(--brand-primary)] dark:text-blue-400" />
-            <span>{settings.tagline || 'বাংলাদেশের বিশ্বস্ত পেশাজীবী নেটওয়ার্ক'}</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight font-siliguri text-[#0F2942] dark:text-white text-balance">
-            {heroTitle}
+      {/* 1) COMPACT HERO HEADLINE (Shown only when no active banners exist, zero ?? corruption) */}
+      {!hasActiveBanners && (
+        <section className="max-w-4xl mx-auto px-4 sm:px-6 text-center pt-2 pb-1">
+          <h1 className="text-2xl sm:text-3xl font-black font-siliguri tracking-tight text-[#0F2942] dark:text-white">
+            {cleanHeroTitle}
           </h1>
-
-          <p className="text-[#475569] dark:text-slate-300 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-            {heroSubtitle}
+          <p className="text-xs sm:text-sm text-[#475569] dark:text-slate-300 mt-1.5 max-w-xl mx-auto leading-relaxed">
+            {cleanHeroSubtitle}
           </p>
+        </section>
+      )}
 
-          {/* 2) LIVE SEARCH & CASCADING FILTER CARD */}
-          <div className="max-w-3xl mx-auto bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl shadow-[0_8px_30px_rgba(15,41,66,0.06)] border border-[#E2E8F0] dark:border-slate-800 text-[#1E293B] dark:text-slate-100 text-left space-y-4">
-            {/* Field 1: Cascading Location Dropdowns (বিভাগ → জেলা → উপজেলা) */}
-            <div>
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-                <label className="flex items-center gap-1.5 text-xs font-bold text-[#0F2942] dark:text-slate-300 uppercase tracking-wider">
-                  <MapPin className="w-4 h-4 text-[#0B63E5]" />
+      {/* 2) LIVE SEARCH & CASCADING FILTER CARD (Directly below banner with zero empty space) */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl shadow-[0_6px_24px_rgba(15,41,66,0.06)] border border-[#E2E8F0] dark:border-slate-800 text-[#1E293B] dark:text-slate-100 text-left space-y-4">
+          {/* Field 1: Cascading Location Dropdowns (বিভাগ → জেলা → উপজেলা) */}
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-[#0F2942] dark:text-slate-300 uppercase tracking-wider">
+                <MapPin className="w-4 h-4 text-[#0B63E5]" />
                   <span>ঠিকানা / এলাকা নির্বাচন করুন (বিভাগ → জেলা → উপজেলা)</span>
                 </label>
 
@@ -483,8 +486,7 @@ export const Home: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
       {/* 3) INTRO / BANNER SECTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
